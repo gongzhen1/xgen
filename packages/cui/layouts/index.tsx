@@ -2,7 +2,6 @@ import '@/styles/index.less'
 
 import { ConfigProvider } from 'antd'
 import { observer } from 'mobx-react-lite'
-import { useAsyncEffect } from 'ahooks'
 import { useEffect, useLayoutEffect, useState } from 'react'
 import { HelmetProvider } from 'react-helmet-async'
 import { container } from 'tsyringe'
@@ -59,7 +58,6 @@ const Index = () => {
 	const messages = useIntl()
 	const [global] = useState(() => container.resolve(GlobalModel))
 	const [isInitialLoad, setIsInitialLoad] = useState(true)
-	const [appInfoReady, setAppInfoReady] = useState(false)
 	const { pathname, search } = useLocation()
 	const is_login = pathname.indexOf('/login/') !== -1 || pathname === '/'
 	const is_auth = pathname === '/auth'
@@ -83,7 +81,6 @@ const Index = () => {
 	}, [])
 
 	useLayoutEffect(() => {
-		if (!appInfoReady) return
 
 		global.visible_menu = true
 		global.hide_nav = search.indexOf('__hidemenu=1') !== -1
@@ -110,7 +107,7 @@ const Index = () => {
 			// 标记首次加载已完成
 			setIsInitialLoad(false)
 		}
-	}, [pathname, global.layout, isInitialLoad, appInfoReady, search, is_login, is_auth, global])
+	}, [pathname, global.layout, isInitialLoad, search, is_login, is_auth, global])
 
 	const props_helmet: IPropsHelmet = {
 		theme: global.theme,
@@ -125,11 +122,10 @@ const Index = () => {
 
 	// Redirect legacy login pages to /auth/entry when OpenAPI is enabled
 	useEffect(() => {
-		if (!appInfoReady) return
 		if (is_login && global.isOpenAPIEnabled) {
 			history.push('/auth/entry')
 		}
-	}, [is_login, global.isOpenAPIEnabled, appInfoReady])
+	}, [is_login, global.isOpenAPIEnabled])
 
 	const renderMainContent = () => {
 		// Standalone pages (OAuth, invitations, etc.) - render without wrappers
