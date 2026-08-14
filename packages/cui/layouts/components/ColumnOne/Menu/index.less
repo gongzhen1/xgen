@@ -1,3 +1,4 @@
+// 单列布局:侧边栏固定 240px
 ._local {
 	position: fixed;
 	top: 0;
@@ -11,6 +12,7 @@
 	display: flex;
 	flex-direction: column;
 	justify-content: space-between;
+	transition: transform ease 0.25s;
 
 	&.hidden {
 		transform: translate3d(-160px, 0, 0);
@@ -21,7 +23,7 @@
 
 	:global {
 		.title_wrap {
-			padding: 20px;
+			padding: 20px 12px;
 			&::after {
 				position: absolute;
 				bottom: 0;
@@ -36,11 +38,19 @@
 			.title {
 				font-size: 18px;
 				margin-top: 0.5em;
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				max-width: 100%;
 			}
 
 			.sub_title {
 				font-size: 14px;
 				margin-top: 0.2em;
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				max-width: 100%;
 			}
 
 			.icon_wrap {
@@ -77,6 +87,7 @@
 			max-height: 240px;
 			overflow-y: scroll;
 			padding-bottom: 10px;
+
 			.xgen-menu {
 				background-color: transparent;
 				border-right: none;
@@ -135,4 +146,39 @@
 			}
 		}
 	}
+}
+
+// 显示/隐藏整个菜单面板的控件:贴在菜单面板右下角(不随滚动条滚动,始终显示)
+.visible_toggle {
+	position: absolute;
+	right: 0;
+	bottom: 16px;
+	transform: translateX(50%);
+	width: 24px;
+	height: 24px;
+	border-radius: 12px;
+	background-color: var(--color_bg_menu);
+	border: 1px solid var(--color_border);
+	color: var(--color_text);
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	cursor: pointer;
+	z-index: 100;
+	transition: background-color ease 0.2s, transform ease 0.25s;
+
+	svg {
+		transform: rotate(90deg);
+		transition: transform ease 0.2s;
+	}
+
+	&:hover {
+		background-color: var(--color_bg_nav);
+	}
+}
+
+// 菜单隐藏时:把 visible_toggle 从 translate(-160px) 中补偿回来,让它贴在左边缘外(可见)
+._local.hidden .visible_toggle {
+	// 面板初始 240 宽,hidden 移 -160,按钮补 240 后总偏移 +80 → 贴屏幕左侧外边
+	transform: translateX(240px);
 }

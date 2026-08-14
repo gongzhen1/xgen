@@ -1,0 +1,27 @@
+// 星星评分:已选中的星星(全星/半星)按主题色填充以显示分数
+// 可通过组件 style={{ color: '...' }} 或覆盖 --rate-color 变量自定义颜色
+._local {
+	:global {
+		.xgen-rate-star-full,
+		.xgen-rate-star-half {
+			.xgen-rate-star-first,
+			.xgen-rate-star-second {
+				color: var(--rate-color, var(--color_main, #fadb14));
+			}
+		}
+	}
+}
+
+[data-theme='dark'] {
+	._local {
+		:global {
+			.xgen-rate-star-full,
+			.xgen-rate-star-half {
+				.xgen-rate-star-first,
+				.xgen-rate-star-second {
+					color: var(--rate-color, var(--color_main, #fadb14));
+				}
+			}
+		}
+	}
+}

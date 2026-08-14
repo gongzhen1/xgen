@@ -14,7 +14,6 @@ import Helmet from './components/Helmet'
 import LoginWrapper from './wrappers/Login'
 import AuthWrapper from './wrappers/Auth'
 import AdminWrapper from './wrappers/Admin'
-import ChatWrapper from './wrappers/Chat'
 import ChatboxWrapper from './wrappers/Chatbox'
 
 import type { IPropsHelmet, IPropsLoginWrapper } from './types'
@@ -37,6 +36,11 @@ const STANDALONE_PAGES = new Map([
 	['otp_verify', '/v/']
 ])
 
+// Cache route list once to avoid rebuilding on every render
+const STANDALONE_ROUTES = Array.from(STANDALONE_PAGES.values())
+
+const CHATDEV_PREFIX = '/chatdev'
+
 // Check if current path matches any standalone page
 const isStandalonePage = (pathname: string): boolean => {
 	// Check for trace view mode: /trace/{id}/view
@@ -44,7 +48,7 @@ const isStandalonePage = (pathname: string): boolean => {
 		return true
 	}
 
-	return Array.from(STANDALONE_PAGES.values()).some((route) => {
+	return STANDALONE_ROUTES.some((route) => {
 		// For routes ending with '/', use startsWith (e.g., /auth/back/, /team/invite/)
 		if (route.endsWith('/')) {
 			return pathname.startsWith(route)
@@ -54,18 +58,32 @@ const isStandalonePage = (pathname: string): boolean => {
 	})
 }
 
+// Safe localStorage read (privacy mode / SSR may throw)
+const hasMenuCache = (): boolean => {
+	try {
+		return Boolean(localStorage.getItem('xgen:menu'))
+	} catch {
+		return false
+	}
+}
+
 const Index = () => {
 	const messages = useIntl()
 	const [global] = useState(() => container.resolve(GlobalModel))
 	const [isInitialLoad, setIsInitialLoad] = useState(true)
 	const { pathname, search } = useLocation()
-	const is_login = pathname.indexOf('/login/') !== -1 || pathname === '/'
-	const is_auth = pathname === '/auth'
-	const is_standalone = isStandalonePage(pathname)
+	const isLogin = pathname.includes('/login/') || pathname === '/'
+	const isAuth = pathname === '/auth'
+	const isStandalone = isStandalonePage(pathname)
+	const isChatdev = pathname.startsWith(CHATDEV_PREFIX)
+	const hideMenu = new URLSearchParams(search).get('__hidemenu') === '1'
 
-	if (!localStorage.getItem('xgen:menu')) {
-		window.$app.Event.emit("app/getUserMenu");
-	}
+	// Trigger menu fetch when cache is missing (side effect, moved out of render)
+	useEffect(() => {
+		if (!hasMenuCache()) {
+			window.$app.Event.emit('app/getUserMenu')
+		}
+	}, [])
 
 	useLayoutEffect(() => {
 		window.$global = global
@@ -81,14 +99,13 @@ const Index = () => {
 	}, [])
 
 	useLayoutEffect(() => {
-
 		global.visible_menu = true
-		global.hide_nav = search.indexOf('__hidemenu=1') !== -1
+		global.hide_nav = hideMenu
 		global.stack.reset()
 
 		// Chat Layout
 		if (global.layout === 'Chat') {
-			if (pathname === '/chat' || pathname === '/chat/' || pathname.startsWith('/chatdev')) {
+			if (pathname === '/chat' || pathname === '/chat/' || isChatdev) {
 				global.setSidebarVisible(false)
 			}
 		}
@@ -98,7 +115,7 @@ const Index = () => {
 			if (pathname.startsWith('/settings/')) {
 				// /settings/* 路由：最大化侧边栏
 				global.updateSidebarState(true, true, window.innerWidth - 40)
-			} else if (pathname !== '/' && !is_login && !is_auth) {
+			} else if (pathname !== '/' && !isLogin && !isAuth) {
 				// 其他路由：显示默认宽度侧边栏
 				const screenWidth = window.innerWidth
 				const defaultWidth = Math.min(screenWidth * 0.618, screenWidth - 320)
@@ -107,14 +124,14 @@ const Index = () => {
 			// 标记首次加载已完成
 			setIsInitialLoad(false)
 		}
-	}, [pathname, global.layout, isInitialLoad, search, is_login, is_auth, global])
+	}, [pathname, global.layout, isInitialLoad, hideMenu, isLogin, isAuth, isChatdev, global])
 
-	const props_helmet: IPropsHelmet = {
+	const propsHelmet: IPropsHelmet = {
 		theme: global.theme,
 		app_info: global.app_info
 	}
 
-	const props_Login_wrapper: IPropsLoginWrapper = {
+	const propsLoginWrapper: IPropsLoginWrapper = {
 		logo: global.app_info?.logo,
 		admin: global.app_info?.login?.admin,
 		user: global.app_info?.login?.user
@@ -122,38 +139,38 @@ const Index = () => {
 
 	// Redirect legacy login pages to /auth/entry when OpenAPI is enabled
 	useEffect(() => {
-		if (is_login && global.isOpenAPIEnabled) {
+		if (isLogin && global.isOpenAPIEnabled) {
 			history.push('/auth/entry')
 		}
-	}, [is_login, global.isOpenAPIEnabled])
+	}, [isLogin, global.isOpenAPIEnabled])
 
 	const renderMainContent = () => {
 		// Standalone pages (OAuth, invitations, etc.) - render without wrappers
-		if (is_standalone) {
+		if (isStandalone) {
 			return <Outlet />
 		}
 
-		if (is_login) {
+		if (isLogin) {
 			// When OpenAPI is enabled, don't render the legacy login wrapper
 			if (global.isOpenAPIEnabled) return null
 
 			return (
-				<LoginWrapper {...props_Login_wrapper}>
+				<LoginWrapper {...propsLoginWrapper}>
 					<Outlet />
 				</LoginWrapper>
 			)
 		}
 
-		if (is_auth) {
+		if (isAuth) {
 			return (
-				<AuthWrapper {...props_Login_wrapper}>
+				<AuthWrapper {...propsLoginWrapper}>
 					<Outlet />
 				</AuthWrapper>
 			)
 		}
 
 		// Force ChatboxWrapper for /chatdev route regardless of global.layout
-		if (pathname.startsWith('/chatdev')) {
+		if (isChatdev) {
 			return (
 				<ChatboxWrapper>
 					<Outlet />
@@ -177,7 +194,7 @@ const Index = () => {
 	}
 	return (
 		<HelmetProvider>
-			<Helmet {...props_helmet}></Helmet>
+			<Helmet {...propsHelmet} />
 			<ConfigProvider prefixCls='xgen'>
 				<GlobalContext.Provider value={global}>{renderMainContent()}</GlobalContext.Provider>
 			</ConfigProvider>

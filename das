@@ -1,0 +1,16 @@
+safe.directory=/mnt/hgfs/project/yaocodes/yao
+safe.directory=/mnt/hgfs/project/yaoapps/lowcode
+user.email=1358400054@qq.com
+user.name=gongzhen1
+safe.directory=*
+http.proxy=http://192.168.80.1:9097
+https.proxy=http://192.168.80.1:9097
+core.repositoryformatversion=0
+core.filemode=true
+core.bare=false
+core.logallrefupdates=true
+remote.origin.url=https://github.com/YaoApp/cui.git
+remote.origin.fetch=+refs/heads/*:refs/remotes/origin/*
+branch.main.remote=origin
+branch.main.merge=refs/heads/main
+branch.main.vscode-merge-base=origin/main
