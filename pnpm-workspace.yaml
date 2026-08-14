@@ -1,2 +1,6 @@
 packages:
-      - 'packages/*'
+  - 'packages/*'
+overrides:
+  '@yaoapp/storex': link:packages/storex
+patchedDependencies:
+  http-deceiver: patches/http-deceiver.patch

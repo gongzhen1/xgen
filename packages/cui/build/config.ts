@@ -28,18 +28,18 @@ const createSSEProxy = (target: string) => ({
 })
 
 export const proxy = {
-	'/v1': createSSEProxy('http://127.0.0.1:5099'),
-	'/api': createSSEProxy('http://127.0.0.1:5099'),
-	'/components': { target: 'http://127.0.0.1:5099', changeOrigin: true },
-	'/assets': { target: 'http://127.0.0.1:5099', changeOrigin: true },
-	'/iframe': { target: 'http://127.0.0.1:5099', changeOrigin: true },
-	'/.well-known': { target: 'http://127.0.0.1:5099', changeOrigin: true },
-	'/ai': { target: 'http://127.0.0.1:5099', changeOrigin: true },
-	'/agents': { target: 'http://127.0.0.1:5099', changeOrigin: true },
-	'/docs': { target: 'http://127.0.0.1:5099', changeOrigin: true },
-	'/tools': { target: 'http://127.0.0.1:5099', changeOrigin: true },
-	'/brands': { target: 'http://127.0.0.1:5099', changeOrigin: true },
-	'/admin': { target: 'http://127.0.0.1:5099', changeOrigin: true }
+	'/v1': createSSEProxy('http://127.0.0.1:5090'),
+	'/api': createSSEProxy('http://127.0.0.1:5090'),
+	'/components': { target: 'http://127.0.0.1:5090', changeOrigin: true },
+	'/assets': { target: 'http://127.0.0.1:5090', changeOrigin: true },
+	'/iframe': { target: 'http://127.0.0.1:5090', changeOrigin: true },
+	'/.well-known': { target: 'http://127.0.0.1:5090', changeOrigin: true },
+	'/ai': { target: 'http://127.0.0.1:5090', changeOrigin: true },
+	'/agents': { target: 'http://127.0.0.1:5090', changeOrigin: true },
+	'/docs': { target: 'http://127.0.0.1:5090', changeOrigin: true },
+	'/tools': { target: 'http://127.0.0.1:5090', changeOrigin: true },
+	'/brands': { target: 'http://127.0.0.1:5090', changeOrigin: true },
+	'/admin': { target: 'http://127.0.0.1:5090', changeOrigin: true }
 }
 
 export const conventionRoutes = {

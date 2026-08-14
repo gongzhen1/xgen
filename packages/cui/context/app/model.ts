@@ -34,7 +34,7 @@ export default class GlobalModel {
 	user = (local.user || {}) as App.User
 	userInfo = (local.userInfo || null) as UserInfo | null
 	features = (local.features || {}) as Record<string, Record<string, boolean>>
-	menus = (local.menus || { items: [], setting: {}, quick: [] }) as App.Menus
+	menus = (local.menus || { items: [], setting: [], quick: [] }) as App.Menus
 	menu = (local.menu || []) as Array<App.Menu>
 
 	in_setting = (local.in_setting || false) as boolean

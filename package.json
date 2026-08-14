@@ -29,6 +29,7 @@
       },
       "dependencies": {
             "@types/react-beautiful-dnd": "^13.1.8",
+            "@yaoapp/storex": "link:packages/storex",
             "mermaid": "^11.4.1",
             "mermaid-react": "^0.1.0",
             "react-beautiful-dnd": "^13.1.1"
