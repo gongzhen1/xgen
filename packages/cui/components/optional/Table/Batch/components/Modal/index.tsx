@@ -31,18 +31,18 @@ const Index = (props: IProps) => {
 		setOptions(_options)
 	}
 
-	const onOk = () => {
+	const onOk = async () => {
 		const v = pickBy(getFieldsValue())
 
 		if (!Object.keys(v).length) return
 
-		window.$app.Event.emit(`${namespace}/batchUpdate`, v)
+		await window.$app.Event.emit(`${namespace}/batchUpdate`, v)
 
 		setBatchActive(false)
 	}
 
-	const onDelete = () => {
-		window.$app.Event.emit(`${namespace}/batchDelete`)
+	const onDelete = async () => {
+		await window.$app.Event.emit(`${namespace}/batchDelete`)
 
 		setBatchActive(false)
 	}

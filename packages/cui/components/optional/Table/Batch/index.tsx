@@ -1,4 +1,4 @@
-import { Tooltip } from 'antd'
+import { Modal as AntdModal, Tooltip } from 'antd'
 import clsx from 'clsx'
 import { useState } from 'react'
 
@@ -30,6 +30,18 @@ const Index = (props: IProps) => {
 		setVisibleModal
 	}
 
+	const onDelete = () => {
+		AntdModal.confirm({
+			title: '确认进行批量删除',
+			content: '删除之后数据不可恢复，请谨慎操作！',
+			centered: true,
+			onOk: async () => {
+				await window.$app.Event.emit(`${namespace}/batchDelete`)
+				setBatchActive(false)
+			}
+		})
+	}
+
 	return (
 		<div className={styles._local}>
 			<Modal {...props_modal}></Modal>
@@ -44,6 +56,14 @@ const Index = (props: IProps) => {
 					>
 						<span className='no_wrap'>选择并编辑</span>
 					</a>
+					{deletable && (
+						<a
+							className='btn_danger flex justify_center align_center transition_normal clickable'
+							onClick={onDelete}
+						>
+							<span className='no_wrap'>批量删除</span>
+						</a>
+					)}
 					<Tooltip title='取消' placement='bottom'>
 						<a
 							className='btn_close flex justify_center align_center'

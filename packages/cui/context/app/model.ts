@@ -454,10 +454,6 @@ export default class GlobalModel {
 		}
 	}
 
-	toggleVisibleMenu() {
-		this.visible_menu = !this.visible_menu
-	}
-
 	updateMenuStatus(itemkey_or_pathname: string) {
 		const { hit, current_nav, paths, keys } = getCurrentMenuIndexs(
 			itemkey_or_pathname,
@@ -514,7 +510,6 @@ export default class GlobalModel {
 		window.$app.Event.on('app/getUserMenu', this.getUserMenu)
 		window.$app.Event.on('app/updateMenuStatus', this.updateMenuStatus)
 		window.$app.Event.on('app/refreshJobsCount', this.refreshJobsCount)
-		window.$app.Event.on('app/toggleVisibleMenu', this.toggleVisibleMenu)
 
 		// 启动Jobs数量定时刷新
 		this.startJobsCountTimer()
@@ -525,7 +520,6 @@ export default class GlobalModel {
 		window.$app.Event.off('app/getUserMenu', this.getUserMenu)
 		window.$app.Event.off('app/updateMenuStatus', this.updateMenuStatus)
 		window.$app.Event.off('app/refreshJobsCount', this.refreshJobsCount)
-		window.$app.Event.off('app/toggleVisibleMenu', this.toggleVisibleMenu)
 
 		// 停止Jobs数量定时刷新
 		this.stopJobsCountTimer()
