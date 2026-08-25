@@ -82,8 +82,6 @@ const Index = (props: IProps) => {
 	const with_total_row = x.setting.table?.props?.withTotalRow && styles.withTotalRow
 
 	if (parent === 'Page') {
-		// TODO: Batch Actions
-		// Batch Actions will be re-implemented in the future
 		const props_custom_action: IPropsCustomAction = {
 			setting: toJS(x.setting),
 			namespace: x.namespace.value,

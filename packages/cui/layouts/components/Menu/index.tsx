@@ -2,8 +2,10 @@ import { useDeepCompareEffect } from 'ahooks'
 import { Input, Menu } from 'antd'
 import clsx from 'clsx'
 import { useState } from 'react'
+import { container } from 'tsyringe'
 
 import { Icon } from '@/widgets'
+import { GlobalModel } from '@/context/app'
 import { history } from '@umijs/max'
 
 import { useMenuItems, useSearch } from './hooks'
@@ -20,7 +22,8 @@ const Index = (props: IPropsMenu) => {
 
 	// 菜单面板整体显示/隐藏(与 Page 左上角汉堡按钮共享状态)
 	const toggleVisible = () => {
-		window.$app.Event.emit('app/toggleVisibleMenu')
+		const global = container.resolve(GlobalModel)
+		global.visible_menu = !global.visible_menu
 	}
 
 	useDeepCompareEffect(() => {
