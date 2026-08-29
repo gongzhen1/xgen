@@ -1,0 +1,32 @@
+._local {
+	width: 100%;
+
+	.group {
+		display: flex;
+		width: 100%;
+		gap: 8px;
+
+		.selectScript,
+		.selectMethod {
+			min-width: 120px;
+		}
+
+		.selectScript {
+			flex: 3;
+		}
+
+		.selectMethod {
+			flex: 2;
+		}
+	}
+
+	.result {
+		margin-top: 6px;
+		padding-left: 12px;
+		font-size: 13px;
+		line-height: 1.5;
+		color: var(--color_text_2);
+		word-break: break-all;
+		font-family: var(--font_mono, monospace);
+	}
+}

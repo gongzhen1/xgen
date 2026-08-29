@@ -340,6 +340,27 @@ const Index = (props: IProps) => {
 			return [<Filter key='filter' onChange={(value) => setKeywords(value)} />]
 		}
 
+		if (openEdge) {
+			return [
+				<Button
+					key='delete'
+					danger
+					size='small'
+					onClick={() => {
+						if (panelEdge) {
+							setEdges((eds: any) => eds.filter((e: any) => e.id !== panelEdge.id))
+							setOpenPanel(false)
+							setPanelEdge(undefined)
+						}
+					}}
+					style={{ fontSize: 12 }}
+				>
+					<Icon name='material-delete' size={10} style={{ marginRight: 4 }} />
+					{is_cn ? '删除连线' : 'Delete Edge'}
+				</Button>
+			]
+		}
+
 		return undefined
 	}
 

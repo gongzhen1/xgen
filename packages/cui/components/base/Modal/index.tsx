@@ -34,6 +34,7 @@ const Index = (props: IProps) => {
 		width: typeof width === 'string' ? width : `${width}px`,
 		visible,
 		config,
+		style: config.style,
 		onBack
 	}
 

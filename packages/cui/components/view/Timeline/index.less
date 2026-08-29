@@ -1,0 +1,144 @@
+.timeline {
+  padding: 16px 0;
+  position: relative;
+}
+
+.item {
+  display: flex;
+  align-items: flex-start;
+  padding: 0 0 24px 0;
+  position: relative;
+  min-height: 48px;
+
+  &:last-child {
+    padding-bottom: 0;
+
+    .line {
+      display: none;
+    }
+  }
+}
+
+.dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  z-index: 1;
+  margin-top: 2px;
+  background: #e8e8e8;
+  color: #fff;
+}
+
+.line {
+  position: absolute;
+  left: 13px;
+  top: 30px;
+  width: 2px;
+  height: calc(100% - 4px);
+  background: #e8e8e8;
+}
+
+.content {
+  margin-left: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.time {
+  font-size: 12px;
+  color: #999;
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+
+.message {
+  font-size: 14px;
+  color: #333;
+  line-height: 1.5;
+  word-break: break-all;
+}
+
+.actionStart {
+  .dot {
+    background: #52c41a;
+  }
+  .line {
+    background: #52c41a;
+  }
+}
+
+.actionPending {
+  .dot {
+    background: #1890ff;
+  }
+  .line {
+    background: #e8e8e8;
+  }
+}
+
+.actionApprove {
+  .dot {
+    background: #52c41a;
+  }
+  .line {
+    background: #52c41a;
+  }
+}
+
+.actionReject {
+  .dot {
+    background: #ff4d4f;
+  }
+  .line {
+    background: #ff4d4f;
+  }
+}
+
+.actionRejectResubmit {
+  .dot {
+    background: #faad14;
+  }
+  .line {
+    background: #faad14;
+  }
+}
+
+.actionResubmit {
+  .dot {
+    background: #1890ff;
+  }
+  .line {
+    background: #52c41a;
+  }
+}
+
+.actionEnd {
+  .dot {
+    background: #52c41a;
+  }
+  .line {
+    display: none;
+  }
+}
+
+.actionFail {
+  .dot {
+    background: #ff4d4f;
+  }
+  .line {
+    display: none;
+  }
+}
+
+.actionOther {
+  .dot {
+    background: #e8e8e8;
+  }
+  .line {
+    background: #e8e8e8;
+  }
+}

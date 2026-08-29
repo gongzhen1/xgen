@@ -247,6 +247,10 @@ export const BuilderProvider: React.FC<IProps> = (props) => {
 	}
 
 	const is_cn = getLocale() === 'zh-CN'
+	// Skip the first onData re-emission on mount: it merely echoes props.value back
+	// up (noise) and can pollute the form before the real stored value arrives.
+	const skipNodesFirstRef = useRef(true)
+	const skipEdgesFirstRef = useRef(true)
 	const [value, setValue] = useState<FlowValue | undefined>(props.value)
 	const [setting, setSetting] = useState<Setting | undefined>(props.setting)
 	const [hideContextMenu, setHideContextMenu] = useState<boolean | undefined>(undefined)
@@ -437,7 +441,7 @@ export const BuilderProvider: React.FC<IProps> = (props) => {
 		[]
 	)
 
-	const onConnectEnd = useCallback(({ nodeId, handleType }: any) => {}, [])
+	const onConnectEnd = ({ nodeId, handleType }: any) => {}
 
 	const onSetFullscreen = (value: boolean) => {
 		setFullscreen(() => value)
@@ -488,19 +492,30 @@ export const BuilderProvider: React.FC<IProps> = (props) => {
 
 	// Trigger the onData event
 	useEffect(() => {
+		if (skipEdgesFirstRef.current) {
+			skipEdgesFirstRef.current = false
+			return
+		}
 		const newEdges: FlowEdge[] = []
 		edges.forEach((edge) => {
+			// Keep edge.id — dropping it makes the normalized output differ from the
+			// stored value, which would ping-pong with value-based reconciliation.
 			newEdges.push({
+				id: edge.id,
 				source: edge.source,
 				target: edge.target,
 				data: { ...edge.data }
-			})
+			} as any)
 		})
 
 		onData(props.id, 'edges', newEdges)
 	}, [edges])
 
 	useEffect(() => {
+		if (skipNodesFirstRef.current) {
+			skipNodesFirstRef.current = false
+			return
+		}
 		const newNodes: FlowNode[] = []
 		nodes.forEach((node) => {
 			const data = { ...node.data }
@@ -513,8 +528,8 @@ export const BuilderProvider: React.FC<IProps> = (props) => {
 				deletable: data.deletable,
 				props: data.props
 			})
-			onData(props.id, 'nodes', newNodes)
 		})
+		onData(props.id, 'nodes', newNodes)
 	}, [nodes])
 
 	return (

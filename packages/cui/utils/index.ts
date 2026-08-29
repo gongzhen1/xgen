@@ -5,6 +5,7 @@ export * from './reg'
 export * from './theme'
 export * from './bind'
 export { default as studio_request } from './studio_request'
+export { default as requestJSON } from './requestJSON'
 export { default as retryUntil } from './retryUntil'
 
 export const isValidUrl = (str: string): boolean => {

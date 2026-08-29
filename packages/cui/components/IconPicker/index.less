@@ -1,0 +1,38 @@
+.iconDisplay {
+	font-size: 16px;
+	cursor: pointer;
+	color: var(--color_main);
+}
+
+.iconSelect {
+	color: var(--color_main);
+	font-size: 14px;
+	padding-left: 11px;
+	cursor: pointer;
+}
+
+.iconList {
+	:global {
+		.xgen-modal-body {
+			white-space: normal;
+		}
+	}
+
+	span {
+		display: inline-block;
+
+		i {
+			margin: 2.5px 5px;
+			cursor: pointer;
+			transition: color 0.2s;
+
+			&:hover {
+				color: var(--color_main);
+			}
+		}
+	}
+
+	.selected {
+		color: var(--color_main);
+	}
+}

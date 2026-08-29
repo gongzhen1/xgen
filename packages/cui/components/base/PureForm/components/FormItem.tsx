@@ -7,6 +7,7 @@ import { useMemo, useState, useRef, useEffect } from 'react'
 
 import { X } from '@/components'
 import { useGlobal } from '@/context/app'
+import Timeline from '@/components/edit/Timeline'
 
 import styles from '../ai.less'
 
@@ -116,20 +117,33 @@ const Index = (props: IPropsFormItem) => {
 					<span className='mark_ai'>AI</span>
 				</Button>
 			)}
-			<X
-				type='edit'
-				name={item.edit?.type || 'Input'}
-				props={{
-					...item.edit?.props,
-					...disabled_props,
-					__namespace: namespace,
-					__primary: primary,
-					__type: type,
-					__bind: item.bind,
-					__name: item.name,
-					__hidelabel: item.edit?.hideLabel || item.hideLabel || undefined
-				}}
-			></X>
+			{item.edit?.type === 'Timeline' ? (
+				<Timeline
+					__namespace={namespace}
+					__primary={primary}
+					__type={type}
+					__bind={item.bind}
+					__name={item.name}
+					__hidelabel={item.edit?.hideLabel || item.hideLabel || undefined}
+					{...disabled_props}
+					{...item.edit?.props}
+				/>
+			) : (
+				<X
+					type='edit'
+					name={item.edit?.type || 'Input'}
+					props={{
+						...item.edit?.props,
+						...disabled_props,
+						__namespace: namespace,
+						__primary: primary,
+						__type: type,
+						__bind: item.bind,
+						__name: item.name,
+						__hidelabel: item.edit?.hideLabel || item.hideLabel || undefined
+					}}
+				></X>
+			)}
 		</Col>
 	)
 

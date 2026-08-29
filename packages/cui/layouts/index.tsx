@@ -33,7 +33,8 @@ const STANDALONE_PAGES = new Map([
 	['team_select', '/team/select'],
 	['team_invite', '/team/invite/'],
 	// OTP verification
-	['otp_verify', '/v/']
+	['otp_verify', '/v/'],
+	// Lowcode studio standalone pages
 ])
 
 // Cache route list once to avoid rebuilding on every render

@@ -1,6 +1,9 @@
 /**
  * The components for shadow dom and dynamic import
  */
+// Force webpack to include these components in the module graph
+import '@/components/edit/Timeline'
+
 export const ExportComponents: Record<string, ExportComponent> = {
 	'edit/Upload': {
 		styles: [

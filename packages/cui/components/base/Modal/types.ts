@@ -6,6 +6,7 @@ export interface IPropsModalWrap {
 	visible: boolean
 	config: Action.OpenModal
 	width?: Action.OpenModal['width']
+	style?: Action.OpenModal['style']
 	mask?: ModalProps['mask']
 	onBack: () => void
 }

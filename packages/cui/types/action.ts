@@ -3,6 +3,7 @@ import { Global } from '@/types'
 export declare namespace Action {
 	interface OpenModal {
 		width?: number | string
+		style?: React.CSSProperties
 		byDrawer?: { mask?: boolean }
 		Form?: {
 			type: 'view' | 'edit'

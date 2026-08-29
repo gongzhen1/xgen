@@ -5,7 +5,7 @@ import styles from './index.less'
 import type { IPropsModalWrap } from '../types'
 
 const Index = (props: IPropsModalWrap) => {
-	const { children, width, visible, mask = true, onBack } = props
+	const { children, width, visible, style, mask = true, onBack } = props
 
 	return (
 		<Modal
@@ -14,6 +14,7 @@ const Index = (props: IPropsModalWrap) => {
 			width={width}
 			open={visible}
 			mask={mask}
+			style={style}
 			onCancel={onBack}
 			destroyOnClose
 			footer={false}

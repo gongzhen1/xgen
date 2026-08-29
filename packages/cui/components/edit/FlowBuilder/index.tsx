@@ -48,6 +48,20 @@ const FlowBuilder = window.$app.memo((props: IProps) => {
 	const [activeFlow, setActiveFlow] = useState<string>('')
 	const [data, setData] = useState<FlowValue[]>(GetValues(props.value))
 
+	// Mirror of `data` for cheap equality checks without stale closures.
+	const dataRef = useRef<FlowValue[]>(data)
+	// When true, suppress the onChange feedback while we only render the
+	// setting.defaultValue placeholder (real stored flow_data hasn't arrived yet).
+	// Prevents the default approvers (e.g. xiang@iqka.com) from being written back
+	// to the form and overwriting the stored value on a subsequent open.
+	const suppressOnChangeRef = useRef<boolean>(false)
+	// Bumped when `data` is replaced externally (e.g. the stored flow_data arrives
+	// after the canvas was built from setting.defaultValue). Changing this key
+	// remounts the tab body so BuilderProvider re-initializes its internal
+	// ReactFlow nodes/edges from props.value — without it, useNodesState keeps the
+	// initial (default) nodes forever since it only consumes value on mount.
+	const [dataVersion, setDataVersion] = useState(0)
+
 	// When the data is updated in the flow
 	// Update the value of the form
 	// Type is: nodes, edges, flow, execute
@@ -122,10 +136,28 @@ const FlowBuilder = window.$app.memo((props: IProps) => {
 	}
 
 	// Trigger the onChange event
-	useEffect(() => props.onChange && props.onChange(data), [data])
+	useEffect(() => {
+		dataRef.current = data
+		if (suppressOnChangeRef.current) return
+		props.onChange && props.onChange(data)
+	}, [data])
+
+	// Fallback for brand-new records: no find() ever arrives, so the default
+	// template is rendered but onChange stays suppressed (and the form would never
+	// receive it). After a short delay, release the suppression and emit the current
+	// (possibly user-edited) data so a new flow can still be saved.
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			if (suppressOnChangeRef.current) {
+				suppressOnChangeRef.current = false
+				props.onChange && props.onChange(dataRef.current)
+			}
+		}, 2000)
+		return () => clearTimeout(timer)
+	}, [])
 
 	// Set the width of the grid layout
-	const offsetTop = 80
+	const offsetTop = 0
 	const [isFixed, setIsFixed] = useState(false)
 	const [fullscreen, _setFullscreen] = useState(false)
 	const setFullscreen = (value: boolean) => {
@@ -278,14 +310,8 @@ const FlowBuilder = window.$app.memo((props: IProps) => {
 		})
 	}
 
-	// Update flowTabs by setting (initialization or setting change)
-	const updateFlowsBySetting = (setting?: Setting) => {
-		if (!setting) return
-		if (initialized) return
-
-		setInitialized(true)
-		const values: FlowValue[] =
-			GetValues(props.value).length == 0 ? GetValues(setting.defaultValue) : GetValues(props.value)
+	// Build flowTabs + data from a set of FlowValues (shared by init and re-sync).
+	const buildFlowsFromValues = (values: FlowValue[]) => {
 		const flowTabs = values.map((flowValue: FlowValue, index: number) =>
 			Tab({
 				...props,
@@ -322,6 +348,24 @@ const FlowBuilder = window.$app.memo((props: IProps) => {
 		})
 	}
 
+	// Update flowTabs by setting (initialization or setting change)
+	const updateFlowsBySetting = (setting?: Setting) => {
+		if (!setting) return
+		if (initialized) return
+
+		setInitialized(true)
+		const incoming = GetValues(props.value)
+		const useDefault = incoming.length === 0
+		// Edit forms: when find resolves after the setting request, props.value is
+		// still empty here. Fall back to defaultValue; the [props.value] effect below
+		// will re-sync once the real value arrives.
+		const values = useDefault ? GetValues(setting.defaultValue) : incoming
+		// Rendering the default placeholder must NOT be written back to the form,
+		// otherwise the default approvers overwrite the stored value on re-open.
+		suppressOnChangeRef.current = useDefault
+		buildFlowsFromValues(values)
+	}
+
 	// Refresh flowTabs (when the width, height, or sidebar status changes)
 	const refreshFlows = () => {
 		setFlowTabs((flowTabs) => {
@@ -352,6 +396,27 @@ const FlowBuilder = window.$app.memo((props: IProps) => {
 		})
 	}
 	useEffect(() => updateFlowsBySetting(setting), [setting])
+
+	// Re-sync from props.value whenever it changes externally.
+	// Fixes edit forms where find() resolves after the setting request: without this,
+	// the canvas would keep showing the defaultValue (e.g. default approvers) instead
+	// of the stored flow_data. Also fixes the case where, on a re-open without page
+	// refresh, props.value arrives already populated (e.g. cached/default value from
+	// a prior onChange side effect) so updateFlowsBySetting does NOT take the default
+	// branch — the previous gate (usedDefaultRef) would then block this resync and
+	// leave the canvas showing the stale default. The equality check skips feedback
+	// from our own onChange (e.g. user edits on a brand-new flow, where props.value
+	// mirrors `data`), preventing an update loop. Bumping dataVersion remounts the
+	// tab bodies so BuilderProvider re-reads props.value into ReactFlow state.
+	useEffect(() => {
+		const incoming = GetValues(props.value)
+		if (incoming.length === 0) return
+		if (JSON.stringify(incoming) === JSON.stringify(dataRef.current)) return
+		suppressOnChangeRef.current = false
+		buildFlowsFromValues(incoming)
+		setDataVersion((v) => v + 1)
+	}, [props.value])
+
 	useEffect(() => refreshFlows(), [width, showSidebar, height, isFixed])
 
 	// Get setting
@@ -400,7 +465,18 @@ const FlowBuilder = window.$app.memo((props: IProps) => {
 				</Then>
 				<Else>
 					<Tabs
-						items={flowTabs}
+						items={
+							dataVersion === 0
+								? flowTabs
+								: flowTabs.map((flowTab: any) => ({
+										...flowTab,
+										// Keyed body forces BuilderProvider (and its internal
+										// ReactFlow nodes/edges state) to remount with the
+										// freshly re-synced value. The tab key itself stays
+										// untouched so antd's activeKey/onEdit keep working.
+										children: <div key={`data-${dataVersion}`}>{flowTab.children}</div>
+								  }))
+						}
 						className={hideTabs}
 						onChange={onTabChange}
 						activeKey={activeFlow == '' && flowTabs?.length > 0 ? flowTabs[0].key : activeFlow}
