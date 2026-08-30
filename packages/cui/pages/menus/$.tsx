@@ -118,7 +118,7 @@ const Index = () => {
 				setting: JSON.stringify(menusData.setting)
 			}
 			const token = getToken()
-			await fetch('/api/__yao/form/sys.menu/save', {
+			const resp = await fetch('/api/__yao/form/sys.menu/save', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -126,6 +126,10 @@ const Index = () => {
 				},
 				body: JSON.stringify(params)
 			})
+			if (!resp.ok) {
+				const errData = await resp.json().catch(() => ({}))
+				throw new Error(errData.message || `保存失败(${resp.status})`)
+			}
 			message.success('保存成功')
 			await query()
 			window.$app?.Event.emit('app/getUserMenu')
