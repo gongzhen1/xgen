@@ -11,6 +11,7 @@ import { difference } from 'lodash-es'
 import styles from './index.less'
 import { useMemoizedFn } from 'ahooks'
 import ReactNiceAvatar from 'react-nice-avatar'
+import { openLogWindow } from '@/components/builder/Log'
 
 const Index = () => {
 	const global = useGlobal()
@@ -42,6 +43,17 @@ const Index = () => {
 			window.location = local.logout_redirect
 			return
 		}
+	})
+
+	const openLog = useMemoizedFn(() => {
+		openLogWindow('setting-log', {
+			logs: { console: [] as any[] },
+			title: is_cn ? '系统日志' : 'System Logs',
+			tabItems: [
+				{ key: 'console', label: is_cn ? '控制台' : 'Console', children: null }
+			],
+			source: { type: 'run' }
+		})
 	})
 
 	const Avatar = (
@@ -161,6 +173,15 @@ const Index = () => {
 						size='small'
 					/>
 				</div> */}
+			</div>
+
+			<div className='setting_items w_100 border_box flex flex_column mt_20'>
+				<div className='setting_item w_100 border_box flex justify_between align_center'>
+					<span className='name'>{is_cn ? '系统日志' : 'System Logs'}</span>
+					<Button size='small' onClick={openLog}>
+						{is_cn ? '查看日志' : 'View Logs'}
+					</Button>
+				</div>
 			</div>
 
 			{/* System Info */}

@@ -60,6 +60,8 @@
 					flex: 1;
 					overflow: hidden;
 					padding: 24px;
+					display: flex;
+					flex-direction: column;
 				}
 
 				&-header {
@@ -71,12 +73,14 @@
 
 		.logContainer {
 			max-width: none;
-			height: 100%;
-		}
+			flex: 1;
+			width: 100%;
+			min-height: 0;
 
-		.logContent {
-			max-height: none;
-			height: 100%;
+			.logContent {
+				max-height: none;
+				height: 100%;
+			}
 		}
 	}
 }
@@ -154,8 +158,41 @@
 }
 
 .logContainer {
-	max-width: 800px;
+	max-width: 1200px;
 	margin: 0 auto;
+	position: relative;
+
+	&.maximized {
+		height: calc(100vh - 130px);
+
+		.logContent {
+			max-height: none;
+			height: 100%;
+		}
+	}
+}
+
+.logToolbar {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 10px;
+
+	.levelSelect {
+		width: 140px;
+		flex: none;
+	}
+
+	.eventSelect {
+		width: 200px;
+		flex: none;
+	}
+
+	.logSearch {
+		flex: 1;
+		width: auto;
+		max-width: 380px;
+	}
 }
 
 .maximized {
@@ -291,6 +328,109 @@
 			word-break: break-all;
 			font-family: var(--font_mono);
 		}
+	}
+
+	&.trace,
+	&.debug {
+		.levelIcon {
+			color: var(--color_text_grey);
+		}
+		.messageContent {
+			color: var(--color_text_grey);
+		}
+	}
+
+	&.fatal {
+		.levelIcon {
+			color: var(--color_danger);
+		}
+		.messageContent {
+			color: var(--color_danger);
+		}
+	}
+}
+
+.autoRefresh {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	font-size: 12px;
+	color: var(--color_text_grey);
+	white-space: nowrap;
+	margin-left: 4px;
+}
+
+.logScrollBtns {
+	position: absolute;
+	top: 50%;
+	right: 8px;
+	transform: translateY(-50%);
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	z-index: 2;
+
+	.scrollBtn {
+		width: 28px;
+		height: 28px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 50%;
+		background: rgba(0, 0, 0, 0.55);
+		color: #fff;
+		cursor: pointer;
+		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+		transition: opacity 0.2s;
+
+		&:hover {
+			opacity: 0.85;
+		}
+
+		.scrollArrow {
+			font-size: 18px;
+			line-height: 1;
+			font-weight: bold;
+			display: inline-block;
+		}
+	}
+}
+
+.levelBadge {
+	flex-shrink: 0;
+	min-width: 44px;
+	padding: 1px 6px;
+	border-radius: 3px;
+	font-size: 11px;
+	font-weight: 600;
+	line-height: 16px;
+	text-align: center;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	font-family: var(--font_mono);
+	border: 1px solid transparent;
+	user-select: none;
+
+	&.b_trace {
+		color: var(--color_text_grey);
+		border-color: var(--color_title_grey);
+	}
+	&.b_debug {
+		color: var(--color_text_grey);
+		border-color: var(--color_title_grey);
+	}
+	&.b_info {
+		color: var(--color_info);
+		border-color: var(--color_info);
+	}
+	&.b_warn {
+		color: var(--color_warning);
+		border-color: var(--color_warning);
+	}
+	&.b_error,
+	&.b_fatal {
+		color: var(--color_danger);
+		border-color: var(--color_danger);
 	}
 }
 

@@ -7,6 +7,8 @@ export interface OpenLogOptions {
 	logs: ILog
 	title?: string
 	tabItems?: LogTabItem[]
+	/** 传入后日志组件自行从后端拉取/刷新/事件/时间快捷搜索 */
+	source?: { type?: string }
 }
 
 // Store all log window roots for management
@@ -29,6 +31,7 @@ export const openLogWindow = (id: string, options: OpenLogOptions) => {
 				logs={options.logs}
 				title={options.title}
 				tabItems={options.tabItems}
+				source={options.source}
 				onClose={() => {
 					root.unmount()
 					logWindowRoots[id].container.remove()
@@ -54,7 +57,14 @@ export const openLogWindow = (id: string, options: OpenLogOptions) => {
 	}
 
 	root.render(
-		<Log id={id} logs={options.logs} title={options.title} tabItems={options.tabItems} onClose={cleanup} />
+		<Log
+			id={id}
+			logs={options.logs}
+			title={options.title}
+			tabItems={options.tabItems}
+			source={options.source}
+			onClose={cleanup}
+		/>
 	)
 }
 

@@ -1,4 +1,4 @@
-export type LogLevel = 'info' | 'warn' | 'error'
+export type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal'
 
 export interface LogItem {
 	level: LogLevel
