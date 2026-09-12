@@ -29,6 +29,7 @@ export interface IProps extends UploadProps, Component.PropsEditComponent, Commo
 
 export interface CustomProps extends UploadProps, CommonProps {
 	api: string | { api: string; params: any }
+	uploadParams?: Record<string, string> // 上传时动态注入当前表单字段值到请求 URL query，如 { uploader: "uploader" }
 	placeholder?: string // the placeholder for the upload
 	placeholderIcon?: string | { name: string; size: number } // the placeholder icon for the upload
 	maxFilesize?: number | string // the max filesize for the upload

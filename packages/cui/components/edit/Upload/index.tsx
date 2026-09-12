@@ -1,5 +1,5 @@
 import { useMemoizedFn } from 'ahooks'
-import { Upload } from 'antd'
+import { Form, Upload } from 'antd'
 import clsx from 'clsx'
 
 import { Item } from '@/components'
@@ -37,8 +37,30 @@ const Custom = window.$app.memo((props: CustomProps) => {
 		previewURL,
 		useAppRoot,
 		__shadow,
+		uploadParams,
 		onChange: trigger
 	} = props
+
+	// 读取外层 Form 实例，用于在发起上传请求时动态注入当前表单字段值（如 uploader）
+	const form = Form.useFormInstance()
+
+	// 将 uploadParams = { 请求参数名: 表单字段bind } 解析为当前表单值，并拼接到上传 URL 的 query 上。
+	// 后端 process 通过 context.req.query 读取，确保「动态请求上传 uploader」。
+	const resolveUploadUrl = useMemoizedFn((url: string) => {
+		if (!url || !uploadParams || !form) return url
+
+		const values = form.getFieldsValue() || {}
+		const query: Record<string, string> = {}
+		for (const key in uploadParams) {
+			const bind = uploadParams[key]
+			const v = values[bind]
+			if (v !== undefined && v !== null && v !== '') query[key] = String(v)
+		}
+
+		const qs = new URLSearchParams(query).toString()
+		if (!qs) return url
+		return url + (url.includes('?') ? '&' : '?') + qs
+	})
 
 	const { list, setList } = useList(props.value, previewURL, useAppRoot, api)
 	const visible_btn = useVisibleBtn(list.length, maxCount || 1)
@@ -119,16 +141,19 @@ const Custom = window.$app.memo((props: CustomProps) => {
 
 		// If api is provided, then it should be a local request
 		if (api) {
+			const baseUrl = (typeof api === 'string' ? api : api?.api) || ''
+			const resolvedUrl = resolveUploadUrl(baseUrl)
+
 			// if api is string, then it should be a local request
 			if (typeof api === 'string') {
-				const request = new LocalRequest({ chunkSize, previewURL, useAppRoot, api })
+				const request = new LocalRequest({ chunkSize, previewURL, useAppRoot, api: resolvedUrl })
 				request.Upload && request.Upload(options)
 				setRequest(request)
 				return
 			}
 
 			// if api is object, then it should be a local request
-			const request = new LocalRequest({ chunkSize, previewURL, useAppRoot, ...api })
+			const request = new LocalRequest({ chunkSize, previewURL, useAppRoot, ...api, api: resolvedUrl })
 			request.Upload && request.Upload(options)
 			setRequest(request)
 		}
