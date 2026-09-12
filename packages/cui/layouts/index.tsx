@@ -32,6 +32,8 @@ const STANDALONE_PAGES = new Map([
 	// Team pages
 	['team_select', '/team/select'],
 	['team_invite', '/team/invite/'],
+	// Custom advanced page render (full-screen, no admin sidebar)
+	['custom_page_render', '/render/'],
 	// OTP verification
 	['otp_verify', '/v/'],
 	// Lowcode studio standalone pages

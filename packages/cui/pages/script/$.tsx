@@ -7,6 +7,8 @@ import clsx from 'clsx'
 
 import styles from './index.less'
 
+import { compileTsx } from '@/components/custompage/compile'
+
 // 华为初始模板
 const INITIAL_CODE = `/*
 /*
@@ -17,6 +19,38 @@ function run(params) {
     return params;
 }
   `
+
+// 高级页面初始模板（原生 React JS/JSX，发布时编译）
+const ADVANCED_INITIAL_CODE = `import { useState, useEffect } from 'react';
+import { Card, Table, Space, Button, message } from 'antd';
+
+// 导出一个默认组件，发布后即可在 /admin/render/{pagename} 预览
+export default function MyPage({ name }) {
+  const [list, setList] = useState([
+    { id: 1, name: '示例一' },
+    { id: 2, name: '示例二' }
+  ]);
+
+  return (
+    <Card title={\`欢迎，\${name || '高级页面'}\`}>
+      <Space style={{ marginBottom: 12 }}>
+        <Button type="primary" onClick={() => message.success('Hello Custom Page!')}>
+          点我
+        </Button>
+      </Space>
+      <Table
+        rowKey="id"
+        dataSource={list}
+        pagination={false}
+        columns={[
+          { title: 'ID', dataIndex: 'id' },
+          { title: '名称', dataIndex: 'name' }
+        ]}
+      />
+    </Card>
+  );
+}
+`
 
 type DebugAction = 'problem' | 'input' | 'output' | 'log'
 
@@ -47,7 +81,7 @@ const Index = () => {
 	const [searchParams] = useSearchParams()
 
 	const [fileType] = useState<string>(() => searchParams.get('type') || 'script')
-	const [currentLanguage] = useState<string>(() => searchParams.get('language') || 'javascript')
+	const [currentLanguage, setCurrentLanguage] = useState<string>(() => searchParams.get('language') || 'javascript')
 	const fileTypeRef = useRef(fileType)
 
 	const [showDebugPanel, setShowDebugPanel] = useState(false)
@@ -60,6 +94,8 @@ const Index = () => {
 
 	const [scriptContent, setScriptContent] = useState('')
 	const [debugContent, setDebugContent] = useState('{\n}')
+	const [isAdvanced, setIsAdvanced] = useState(false)
+	const [publishing, setPublishing] = useState(false)
 
 	const scriptPanelH = `calc(100vh - 2.857rem - ${debugPanelH})`
 	const debugEditorH = `calc(${debugPanelH} - 2rem)`
@@ -127,9 +163,18 @@ const Index = () => {
 		}
 		try {
 			const resp = await fetch(`/api/__yao/form/sys.${fileTypeRef.current}/find/${id}`)
-			const data = await resp.json()
-			scriptDataRef.current = data
-			const content = data?.content || (fileTypeRef.current === 'script' ? INITIAL_CODE : '{}')
+				const data = await resp.json()
+				scriptDataRef.current = data
+					setIsAdvanced(data?.type === 'advanced')
+					// 高级页面使用原生 React(JS/JSX)，等价于 javascript
+					if (data?.type === 'advanced') setCurrentLanguage('javascript')
+					const content =
+						data?.content ||
+						(data?.type === 'advanced'
+							? ADVANCED_INITIAL_CODE
+							: fileTypeRef.current === 'script'
+							? INITIAL_CODE
+							: '{}')
 			setScriptContent(content)
 			// 初始化历史
 			const scriptId = searchParams.get('id') || ''
@@ -172,6 +217,30 @@ const Index = () => {
 			message.success('保存成功')
 		} catch (err: any) {
 			message.error(err?.message || JSON.stringify(err))
+		}
+	}
+
+	// 发布高级页面：编译当前 TSX 并存 jscode
+	const publish = async () => {
+		if (!scriptDataRef.current || !isAdvanced) return
+		if (!scriptContent || !scriptContent.trim()) {
+			message.warning('页面内容为空')
+			return
+		}
+		setPublishing(true)
+		try {
+			const pageName = searchParams.get('name') || `page_${scriptDataRef.current.id}`
+			const { code } = await compileTsx(scriptContent, pageName)
+			await fetch('/api/custompage/publish', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ id: scriptDataRef.current.id, jscode: code, entry: 'default' })
+			})
+			message.success('发布成功')
+		} catch (err: any) {
+			message.error(`发布失败: ${err?.message || JSON.stringify(err)}`)
+		} finally {
+			setPublishing(false)
 		}
 	}
 
@@ -313,6 +382,15 @@ const Index = () => {
 								<div className='toolbar-item'>
 									<span className='icon-tb-play' onClick={switchDebugPanel}></span>
 								</div>
+							</Tooltip>
+						</div>
+					)}
+					{isAdvanced && (
+						<div className='item'>
+							<Tooltip title='发布：编译当前 React 页面并保存'>
+								<div className={`toolbar-item ${publishing ? 'is-disabled' : ''}`} onClick={() => !publishing && publish()}>
+								<span className='icon-tb-publish'></span>
+							</div>
 							</Tooltip>
 						</div>
 					)}
