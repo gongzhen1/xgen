@@ -95,7 +95,26 @@ const Index = () => {
 		global.on()
 		global.stack.on()
 
+		// 全局导航事件(app/replaceRoute、app/openSidebar)：
+		// 默认在任意布局(如 Admin)下用 umi router 做 SPA 跳转；
+		// Chat 布局下跳过，交给 ChatboxWrapper 自身的侧栏逻辑处理，避免重复触发。
+		const handleGlobalReplaceRoute = (detail: { url?: string; title?: string }) => {
+			if (!detail?.url) return
+			if (global.layout === 'Chat') return
+			history.replace(detail.url)
+		}
+		const handleGlobalOpenSidebar = (detail: { url?: string; path?: string; title?: string; icon?: any }) => {
+			if (global.layout === 'Chat') return
+			const url = detail?.path || detail?.url
+			if (!url) return
+			history.push(url)
+		}
+		window.$app.Event.on('app/replaceRoute', handleGlobalReplaceRoute)
+		window.$app.Event.on('app/openSidebar', handleGlobalOpenSidebar)
+
 		return () => {
+			window.$app.Event.off('app/replaceRoute', handleGlobalReplaceRoute)
+			window.$app.Event.off('app/openSidebar', handleGlobalOpenSidebar)
 			global.off()
 			global.stack.off()
 		}
