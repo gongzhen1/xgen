@@ -86,8 +86,6 @@ const Index = () => {
 
 	const [showDebugPanel, setShowDebugPanel] = useState(false)
 	const [debugPanelH, setDebugPanelH] = useState('0px')
-	const [executionResult, setExecutionResult] = useState('')
-	const [executionLog, setExecutionLog] = useState('{\n}')
 	const [activeDebugAction, setActiveDebugAction] = useState<DebugAction>('input')
 	const [functionNames, setFunctionNames] = useState<string[]>([])
 	const [debugFunc, setDebugFunc] = useState('')
@@ -96,6 +94,20 @@ const Index = () => {
 	const [debugContent, setDebugContent] = useState('{\n}')
 	const [isAdvanced, setIsAdvanced] = useState(false)
 	const [publishing, setPublishing] = useState(false)
+
+	// fetch 在 HTTP 4xx/5xx 时不会抛错，需手动检查 resp.ok，
+	// 否则接口报错也会被当作成功并弹出“保存成功/发布成功”。
+	const handleResp = async (resp: Response) => {
+		if (resp.ok) return await resp.json()
+		let msg = `请求失败 (HTTP ${resp.status})`
+		try {
+			const data = await resp.json()
+			if (data?.message) msg = String(data.message)
+		} catch {
+			// 忽略非 JSON 响应体
+		}
+		throw new Error(msg)
+	}
 
 	const scriptPanelH = `calc(100vh - 2.857rem - ${debugPanelH})`
 	const debugEditorH = `calc(${debugPanelH} - 2rem)`
@@ -106,6 +118,10 @@ const Index = () => {
 	const debugFuncRef = useRef('')
 	const scriptDataRef = useRef<any>(null)
 	const debugEditorReadOnlyRef = useRef(false)
+	// 记录最近的运行输出/日志，供 switchDebugAction 立即刷新面板，
+	// 避免读取到尚未更新的 state（React setState 异步导致闭包拿到旧值）。
+	const executionResultRef = useRef('')
+	const executionLogRef = useRef('{\n}')
 
 	// 撤销/反撤销历史管理（最多5步，保存到localStorage）
 	const historyRef = useRef<{ stack: string[]; index: number }>({ stack: [], index: -1 })
@@ -163,7 +179,7 @@ const Index = () => {
 		}
 		try {
 			const resp = await fetch(`/api/__yao/form/sys.${fileTypeRef.current}/find/${id}`)
-				const data = await resp.json()
+				const data = await handleResp(resp)
 				scriptDataRef.current = data
 					setIsAdvanced(data?.type === 'advanced')
 					// 高级页面使用原生 React(JS/JSX)，等价于 javascript
@@ -209,11 +225,13 @@ const Index = () => {
 		scriptDataRef.current.content = scriptContent
 		setFunctionNames(extractFunctionNames(scriptContent))
 		try {
-			await fetch(`/api/__yao/form/sys.${fileTypeRef.current}/save`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(scriptDataRef.current)
-			})
+			await handleResp(
+				await fetch(`/api/__yao/form/sys.${fileTypeRef.current}/save`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(scriptDataRef.current)
+				})
+			)
 			message.success('保存成功')
 		} catch (err: any) {
 			message.error(err?.message || JSON.stringify(err))
@@ -231,11 +249,13 @@ const Index = () => {
 		try {
 			const pageName = searchParams.get('name') || `page_${scriptDataRef.current.id}`
 			const { code } = await compileTsx(scriptContent, pageName)
-			await fetch('/api/custompage/publish', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ id: scriptDataRef.current.id, jscode: code, entry: 'default' })
-			})
+			await handleResp(
+				await fetch('/api/custompage/publish', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ id: scriptDataRef.current.id, jscode: code, entry: 'default' })
+				})
+			)
 			message.success('发布成功')
 		} catch (err: any) {
 			message.error(`发布失败: ${err?.message || JSON.stringify(err)}`)
@@ -291,14 +311,14 @@ const Index = () => {
 					input: params
 				})
 			})
-			const output = await resp.json()
+			const output = await handleResp(resp)
 			const outputStr = JSON.stringify(output)
-			setExecutionResult(outputStr)
+			executionResultRef.current = outputStr
 			setDebugContent(outputStr)
 			switchDebugAction('output')
 		} catch (err: any) {
 			const errMsg = `执行错误: ${err?.message || JSON.stringify(err)}`
-			setExecutionLog(errMsg)
+			executionLogRef.current = errMsg
 			setDebugContent(errMsg)
 			switchDebugAction('log')
 		}
@@ -326,10 +346,10 @@ const Index = () => {
 				setDebugContent(inputParamsRef.current)
 				break
 			case 'output':
-				setDebugContent(executionResult)
+				setDebugContent(executionResultRef.current)
 				break
 			case 'log':
-				setDebugContent(executionLog)
+				setDebugContent(executionLogRef.current)
 				break
 			default:
 				break
