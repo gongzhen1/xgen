@@ -1207,3 +1207,13 @@
 .icon-tb-playCheck:before {
 	content: '\e93a';
 }
+.icon-tb-ai:before {
+	content: '\e940';
+	color: #fff;
+}
+.icon-tb-settings:before {
+	content: '\e98d';
+}
+.icon-tb-send:before {
+	content: '\e912';
+}

@@ -8,6 +8,7 @@ import clsx from 'clsx'
 import styles from './index.less'
 
 import { compileTsx } from '@/components/custompage/compile'
+import AiPanel from './components/AiPanel'
 
 // 华为初始模板
 const INITIAL_CODE = `/*
@@ -94,6 +95,7 @@ const Index = () => {
 	const [debugContent, setDebugContent] = useState('{\n}')
 	const [isAdvanced, setIsAdvanced] = useState(false)
 	const [publishing, setPublishing] = useState(false)
+	const [aiOpen, setAiOpen] = useState(false)
 
 	// fetch 在 HTTP 4xx/5xx 时不会抛错，需手动检查 resp.ok，
 	// 否则接口报错也会被当作成功并弹出“保存成功/发布成功”。
@@ -257,6 +259,9 @@ const Index = () => {
 				})
 			)
 			message.success('发布成功')
+			// 打开预览页面，用固定窗口名复用已打开的标签页
+			const previewUrl = `/admin/render/${pageName}`
+			window.open(previewUrl, `preview-${pageName}`)
 		} catch (err: any) {
 			message.error(`发布失败: ${err?.message || JSON.stringify(err)}`)
 		} finally {
@@ -430,8 +435,24 @@ const Index = () => {
 					</div>
 					<div className='item'>
 						<Tooltip title='刷新当前引入的脚本到最新状态(Alt+m)'>
-							<div className='toolbar-item'>
+							<div className='toolbar-item' onClick={query}>
 								<span className='icon-tb-refresh'></span>
+							</div>
+						</Tooltip>
+					</div>
+					<div className='item'>
+						<Tooltip title='AI 生成'>
+							<div className={clsx('toolbar-item', aiOpen && 'active')} onClick={() => setAiOpen((v) => !v)}>
+								<svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>
+									<rect x='4' y='4' width='16' height='16' rx='3' />
+									<circle cx='9' cy='10' r='1.2' fill='currentColor' />
+									<circle cx='15' cy='10' r='1.2' fill='currentColor' />
+									<path d='M9 15h6' />
+									<path d='M12 1v3' />
+									<path d='M12 20v3' />
+									<path d='M1 12h3' />
+									<path d='M20 12h3' />
+								</svg>
 							</div>
 						</Tooltip>
 					</div>
@@ -553,6 +574,18 @@ const Index = () => {
 					</div>
 				</div>
 			</div>
+			<AiPanel
+				open={aiOpen}
+				onClose={() => setAiOpen(false)}
+				getCurrentCode={() => scriptContent}
+				onInsertCode={(code: string) => {
+					skipHistoryRef.current = true
+					setScriptContent(code)
+					message.success('已插入到编辑器，可 Ctrl+Z 撤销')
+				}}
+				fileType={fileType}
+				isAdvanced={isAdvanced}
+			/>
 		</div>
 	)
 }

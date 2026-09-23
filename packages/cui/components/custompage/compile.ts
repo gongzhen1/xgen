@@ -84,6 +84,7 @@ export async function compileTsx(source: string, pageName: string, entryName = D
     PropTypes,
     ConfigProvider,
     message,
+    notification,
     Modal,
     Form,
     Input,
@@ -121,8 +122,28 @@ export async function compileTsx(source: string, pageName: string, entryName = D
     Descriptions,
     Steps,
     Alert,
-    Result
+    Result,
+    Skeleton,
+    Carousel,
+    Collapse,
+    Popover,
+    Dropdown,
+    Pagination,
+    Breadcrumb,
+    Timeline,
+    Transfer,
+    Rate,
+    Slider,
+    Mentions,
+    Cascader,
+    TreeSelect,
+    AutoComplete,
+    Anchor,
+    BackTop,
+    Statistic,
+    Calendar
   } = window[${JSON.stringify(CUSTOM_RUNTIME)}] || {};
+  const { Title, Paragraph, Text, Link } = Typography || {};
   var __CustomPageEntry;
 ${body}
   if (typeof __CustomPageEntry === 'undefined' && window[${JSON.stringify(CUSTOM_RUNTIME)}] && window[${JSON.stringify(CUSTOM_RUNTIME)}].React) {
