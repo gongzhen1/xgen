@@ -7,7 +7,7 @@ import clsx from 'clsx'
 
 import styles from './index.less'
 
-import { compileTsx } from '@/components/custompage/compile'
+import { compileTsx, compileTsxEsm, hasEsmImport } from '@/components/custompage/compile'
 import AiPanel from './components/AiPanel'
 
 // 华为初始模板
@@ -242,7 +242,15 @@ const Index = () => {
 
 	// 发布高级页面：编译当前 TSX 并存 jscode
 	const publish = async () => {
-		if (!scriptDataRef.current || !isAdvanced) return
+		console.log('[publish] click', { hasData: !!scriptDataRef.current, isAdvanced })
+		if (!scriptDataRef.current) {
+			message.warning('页面数据尚未加载完成，请稍后重试或点刷新按钮')
+			return
+		}
+		if (!isAdvanced) {
+			message.warning('当前页面不是高级页面（type≠advanced），无需发布')
+			return
+		}
 		if (!scriptContent || !scriptContent.trim()) {
 			message.warning('页面内容为空')
 			return
@@ -250,7 +258,14 @@ const Index = () => {
 		setPublishing(true)
 		try {
 			const pageName = searchParams.get('name') || `page_${scriptDataRef.current.id}`
-			const { code } = await compileTsx(scriptContent, pageName)
+			const esm = hasEsmImport(scriptContent)
+			console.log('[publish] compiling...', { pageName, esm })
+			// 标准 ESM import 写法走浏览器原生模块（importmap 解析 react/antd/@heroui/react）；
+			// 无 import 的旧代码保持 IIFE 兼容模式
+			const code = esm
+				? await compileTsxEsm(scriptContent, pageName)
+				: (await compileTsx(scriptContent, pageName)).code
+			console.log('[publish] compiled, bytes:', code.length)
 			await handleResp(
 				await fetch('/api/custompage/publish', {
 					method: 'POST',
@@ -258,11 +273,14 @@ const Index = () => {
 					body: JSON.stringify({ id: scriptDataRef.current.id, jscode: code, entry: 'default' })
 				})
 			)
+			console.log('[publish] published OK')
 			message.success('发布成功')
 			// 打开预览页面，用固定窗口名复用已打开的标签页
 			const previewUrl = `/admin/render/${pageName}`
 			window.open(previewUrl, `preview-${pageName}`)
 		} catch (err: any) {
+			// message 静态方法若因兼容问题不显示，console 兜底保证错误可见
+			console.error('[publish] failed:', err)
 			message.error(`发布失败: ${err?.message || JSON.stringify(err)}`)
 		} finally {
 			setPublishing(false)

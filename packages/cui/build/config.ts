@@ -72,6 +72,11 @@ export const chainWebpack = (config: Config, _: any) => {
 	const reg_shadowcss = /\.sss$/
 	const reg_shadowless = /\.lsss$/
 
+	// umi 4.0.x 对非 "18." 开头的 react-dom 会把 react-dom/client 别名到包根目录
+	// （为 React 16/17 设计），导致 React 19 下 client 被误指向主入口、丢失 createRoot/hydrateRoot。
+	// 这里强制指回真实的 client 入口。
+	config.resolve.alias.set('react-dom/client', require.resolve('react-dom/client'))
+
 	config.module.rule('asset').exclude.add(reg_shadowcss).end().exclude.add(reg_shadowless).end()
 	config.plugin('monaco-editor-webpack-plugin').use(MonacoWebpackPlugin, [
 		{ languages: ['json', 'javascript', 'typescript', 'yaml', 'html', 'css', 'sql', 'markdown'] }

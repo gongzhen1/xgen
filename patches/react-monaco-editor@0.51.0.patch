@@ -1,0 +1,49 @@
+diff --git a/lib/diff.js b/lib/diff.js
+index 99a22a906db58b72e806b9b45b23432f967e4d29..2b8c37c882d02430907cd679f64bf9bedcba45c9 100644
+--- a/lib/diff.js
++++ b/lib/diff.js
+@@ -129,7 +129,7 @@ function MonacoDiffEditor(_a) {
+     []);
+     return (React.createElement("div", { ref: containerElement, style: style, className: "react-monaco-editor-container" }));
+ }
+-MonacoDiffEditor.defaultProps = {
++var MonacoDiffEditorDefaults = {
+     width: "100%",
+     height: "100%",
+     original: null,
+@@ -145,5 +145,9 @@ MonacoDiffEditor.defaultProps = {
+     onChange: noop,
+     className: null,
+ };
+-export default MonacoDiffEditor;
++// React 19 移除了函数组件的 defaultProps，改为在外层合并默认 props
++var MonacoDiffEditorWithDefaults = function MonacoDiffEditorWithDefaults(props) {
++    return React.createElement(MonacoDiffEditor, Object.assign({}, MonacoDiffEditorDefaults, props));
++};
++export default MonacoDiffEditorWithDefaults;
+ //# sourceMappingURL=diff.js.map
+\ No newline at end of file
+diff --git a/lib/editor.js b/lib/editor.js
+index 4f817210d0f4943a39c18a03f81aadd0d4b9d6a3..f34c0cf8dd6e78b1a35868295e655b3b2273d2dc 100644
+--- a/lib/editor.js
++++ b/lib/editor.js
+@@ -118,7 +118,7 @@ function MonacoEditor(_a) {
+     []);
+     return (React.createElement("div", { ref: containerElement, style: style, className: "react-monaco-editor-container" }));
+ }
+-MonacoEditor.defaultProps = {
++var MonacoEditorDefaults = {
+     width: "100%",
+     height: "100%",
+     value: null,
+@@ -133,5 +133,9 @@ MonacoEditor.defaultProps = {
+     onChange: noop,
+     className: null,
+ };
+-export default MonacoEditor;
++// React 19 移除了函数组件的 defaultProps，改为在外层合并默认 props
++var MonacoEditorWithDefaults = function MonacoEditorWithDefaults(props) {
++    return React.createElement(MonacoEditor, Object.assign({}, MonacoEditorDefaults, props));
++};
++export default MonacoEditorWithDefaults;
+ //# sourceMappingURL=editor.js.map

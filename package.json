@@ -33,5 +33,17 @@
             "mermaid": "^11.4.1",
             "mermaid-react": "^0.1.0",
             "react-beautiful-dnd": "^13.1.1"
+      },
+      "pnpm": {
+            "overrides": {
+                  "react": "^19.0.0",
+                  "react-dom": "^19.0.0",
+                  "@types/react": "^19.0.0",
+                  "@types/react-dom": "^19.0.0"
+            },
+            "patchedDependencies": {
+                  "http-deceiver": "patches/http-deceiver.patch",
+                  "react-monaco-editor@0.51.0": "patches/react-monaco-editor@0.51.0.patch"
+            }
       }
 }
