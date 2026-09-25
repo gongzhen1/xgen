@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 import { Spin, Result, Empty } from 'antd'
 
+import NotFound from '@/pages/404'
+
 import { loadCustomPageComponent } from './compile'
 
 interface IProps {
@@ -21,11 +23,25 @@ const CustomPageView = ({ pageName, props = {}, height }: IProps) => {
 	const [Comp, setComp] = useState<any>(null)
 	const [err, setErr] = useState('')
 	const [loading, setLoading] = useState(false)
+	const [label, setLabel] = useState('')
+	const [notFound, setNotFound] = useState(false)
+
+	// 页面标题：取页面的 label，为空时保持布局默认标题（不覆盖）
+	useEffect(() => {
+		if (!label) return
+		const prev = document.title
+		document.title = label
+		return () => {
+			document.title = prev
+		}
+	}, [label])
 
 	useEffect(() => {
 		let cancelled = false
 		setComp(null)
 		setErr('')
+		setLabel('')
+		setNotFound(false)
 		if (!pageName) {
 			setErr('缺少页面标识 pageName')
 			return
@@ -36,10 +52,18 @@ const CustomPageView = ({ pageName, props = {}, height }: IProps) => {
 
 		setLoading(true)
 		fetch(`/api/custompage/render/${encodeURIComponent(pageName)}`)
-			.then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+			.then((r) => {
+				if (!r.ok) {
+					const e: any = new Error(`HTTP ${r.status}`)
+					e.status = r.status
+					return Promise.reject(e)
+				}
+				return r.json()
+			})
 			.then((res) => {
 				if (cancelled) return
 				const data = res?.data
+				setLabel(String(data?.label || '').trim())
 				if (!data || !data.jscode) {
 					setErr(data?.status === 'unpublished' ? '该页面尚未发布' : '未获取到编译代码')
 					return
@@ -49,7 +73,13 @@ const CustomPageView = ({ pageName, props = {}, height }: IProps) => {
 				})
 			})
 			.catch((e: any) => {
-				if (!cancelled) setErr(String(e?.message || e))
+				if (cancelled) return
+				// 页面不存在：复用 CUI 的 404 页面展示
+				if (e?.status === 404) {
+					setNotFound(true)
+					return
+				}
+				setErr(String(e?.message || e))
 			})
 			.finally(() => {
 				if (!cancelled) setLoading(false)
@@ -60,6 +90,9 @@ const CustomPageView = ({ pageName, props = {}, height }: IProps) => {
 		}
 	}, [pageName])
 
+	if (notFound) {
+		return <NotFound />
+	}
 	if (err) {
 		return <Result status='warning' title='无法渲染' subTitle={err} />
 	}

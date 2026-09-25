@@ -134,7 +134,8 @@ const LogWindow = (props: IProps) => {
 	// 远程模式：自身维护数据
 	const [logs, setLogs] = useState<ILog>(props.logs)
 	const [events, setEvents] = useState<string[]>([])
-	const [filters, setFilters] = useState({ range: 5, event: 'all', level: 'all', keyword: '' })
+	const [ips, setIps] = useState<string[]>([])
+	const [filters, setFilters] = useState({ range: 5, event: 'all', level: 'all', keyword: '', ip: 'all' })
 	const [kwInput, setKwInput] = useState('')
 	const [reload, setReload] = useState(0)
 	const kwTimer = useRef<any>(null)
@@ -147,6 +148,7 @@ const LogWindow = (props: IProps) => {
 		if (f.event && f.event !== 'all') params.event = f.event
 		if (f.level && f.level !== 'all') params.level = f.level
 		if (f.keyword && f.keyword.trim()) params.keyword = f.keyword.trim()
+		if (f.ip && f.ip !== 'all') params.ip = f.ip
 		try {
 			const raw: any = await axios.get(`${getApiBase()}/log/view`, { params })
 			setLogs(unwrapBody(raw?.data ? raw.data : raw))
@@ -155,7 +157,7 @@ const LogWindow = (props: IProps) => {
 		}
 	}
 
-	// 事件下拉数据
+	// 事件 / 来源 IP 下拉数据
 	useEffect(() => {
 		if (!source) return
 		axios
@@ -163,7 +165,9 @@ const LogWindow = (props: IProps) => {
 			.then((raw: any) => {
 				const body = raw?.data ? raw.data : raw
 				const arr = body?.events || body?.data?.events || []
+				const ipArr = body?.ips || body?.data?.ips || []
 				setEvents(Array.isArray(arr) ? arr : [])
+				setIps(Array.isArray(ipArr) ? ipArr : [])
 			})
 			.catch(() => {})
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -217,6 +221,11 @@ const LogWindow = (props: IProps) => {
 	const eventOptions = [
 		{ value: 'all', label: is_cn ? '全部事件' : 'All Events' },
 		...events.map((e) => ({ value: e, label: e }))
+	]
+
+	const ipOptions = [
+		{ value: 'all', label: is_cn ? '全部来源' : 'All Sources' },
+		...ips.map((v) => ({ value: v, label: v }))
 	]
 
 	return (
@@ -288,6 +297,13 @@ const LogWindow = (props: IProps) => {
 									value={filters.event}
 									options={eventOptions}
 									onChange={(v) => setFilters((f) => ({ ...f, event: v }))}
+									className={styles.eventSelect}
+								/>
+								<Select
+									size='small'
+									value={filters.ip}
+									options={ipOptions}
+									onChange={(v) => setFilters((f) => ({ ...f, ip: v }))}
 									className={styles.eventSelect}
 								/>
 								<Select
