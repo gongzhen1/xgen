@@ -245,6 +245,7 @@ export async function compileTsx(source: string, pageName: string, entryName = D
     Select,
     Button,
     Table,
+    DataTable,
     Space,
     Tag,
     Card,

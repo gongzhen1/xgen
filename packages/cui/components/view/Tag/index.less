@@ -17,44 +17,47 @@
 	line-height: 1;
 }
 
-._primary {
-	background-color: var(--xgen-primary-color);
-	border-color: var(--xgen-primary-color);
-	color: var(--xgen-primary-1);
-}
+// 用 .xgen-tag.xgen-tag-filled 双 class 提高特异性，确保覆盖 antd6 默认 tag 样式
+:global(.xgen-tag):global(.xgen-tag-filled) {
+	&._primary {
+		background-color: var(--xgen-primary-color) !important;
+		border-color: var(--xgen-primary-color) !important;
+		color: var(--xgen-primary-1) !important;
+	}
 
-._danger {
-	background-color: var(--xgen-error-color);
-	border-color: var(--xgen-error-color);
-	color: #ffffff;
-}
+	&._danger {
+		background-color: var(--xgen-error-color) !important;
+		border-color: var(--xgen-error-color) !important;
+		color: #ffffff !important;
+	}
 
-._success {
-	background-color: var(--xgen-success-color);
-	border-color: var(--xgen-success-color);
-	color: #ffffff;
-}
+	&._success {
+		background-color: var(--xgen-success-color) !important;
+		border-color: var(--xgen-success-color) !important;
+		color: #ffffff !important;
+	}
 
-._warning {
-	background-color: var(--xgen-warning-color);
-	border-color: var(--xgen-warning-color);
-	color: #ffffff;
-}
+	&._warning {
+		background-color: var(--xgen-warning-color) !important;
+		border-color: var(--xgen-warning-color) !important;
+		color: #ffffff !important;
+	}
 
-._info {
-	background-color: var(--xgen-info-color);
-	border-color: var(--xgen-info-color);
-	color: #ffffff;
-}
+	&._info {
+		background-color: var(--xgen-info-color) !important;
+		border-color: var(--xgen-info-color) !important;
+		color: #ffffff !important;
+	}
 
-._title {
-	background-color: var(--color_page_title);
-	border-color: var(--color_page_title);
-	color: #ffffff;
-}
+	&._title {
+		background-color: var(--color_page_title) !important;
+		border-color: var(--color_page_title) !important;
+		color: #ffffff !important;
+	}
 
-._placeholder {
-	background-color: var(--color_placeholder);
-	border-color: var(--color_placeholder);
-	color: #ffffff;
+	&._placeholder {
+		background-color: var(--color_placeholder) !important;
+		border-color: var(--color_placeholder) !important;
+		color: #ffffff !important;
+	}
 }

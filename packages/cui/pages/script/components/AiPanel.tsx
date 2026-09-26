@@ -26,11 +26,18 @@ function buildSystemSkill(fileType: string, isAdvanced: boolean): string {
 			'【可用组件（严格白名单，超出此列表的组件会报 is not defined）】\n' +
 			'布局：Layout, Header, Content, Footer, Sider, Row, Col, Divider, Space\n' +
 			'导航：Menu, Breadcrumb, Pagination, Steps, Anchor, BackTop, Dropdown\n' +
-			'数据展示：Card, Table, List, Tag, Avatar, Badge, Tooltip, Carousel, Collapse, Tabs, Descriptions, Timeline, Tree, Statistic, Image, Empty, Skeleton, Calendar\n' +
+			'数据展示：Card, Table, DataTable, List, Tag, Avatar, Badge, Tooltip, Carousel, Collapse, Tabs, Descriptions, Timeline, Tree, Statistic, Image, Empty, Skeleton, Calendar\n' +
 			'数据录入：Input, InputNumber, Select, Checkbox, Radio, Switch, DatePicker, TimePicker, Form, Upload, Rate, Slider, Mentions, Cascader, TreeSelect, AutoComplete, Transfer\n' +
 			'反馈：Button, Alert, message, Modal, Drawer, Popconfirm, Popover, Progress, Result, Spin\n' +
 			'排版：Typography（及其子组件 Title, Paragraph, Text, Link —— 已全局解构，可直接写 <Title>）\n' +
 			'其他：ConfigProvider\n\n' +
+			'【DataTable 轻量数据表格用法（列宽可配/自带操作列/无限滚动）】\n' +
+			'- 基本写法：<DataTable data={rows} columns={columns} rowKey="id" loading={loading} />\n' +
+			'- columns 是对象数组：{ key, title, dataIndex, render?: (value, record) => ReactNode, ellipsis, align?: \'left|center|right\' }，不要写 import 类型\n' +
+			'- 列宽外部统一控制：columnWidthPreset="compact|normal|wide"；columnWidths={{ 列key: { width, minWidth, flex } }} 覆盖预设；autoFitColumns 自适应容器\n' +
+			'- actions={[{ key: \'delete\', label: \'删除\', onClick: (record) => {} }]} 会自动追加「操作」列（key 为 delete 自动标红）\n' +
+			'- 不需要分页时 pagination={false}；无限滚动用 hasMore + onLoadMore + loadingMore\n' +
+			'- 注意：DataTable 只负责渲染，不发起数据请求，数据由页面自行获取后传入\n\n' +
 			'【可用工具函数】\n' +
 			'message.success/error/warning/info\n\n' +
 			'【编码规范】\n' +

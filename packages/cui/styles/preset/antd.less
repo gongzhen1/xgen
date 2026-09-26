@@ -49,6 +49,25 @@
 	display: none !important;
 }
 
+/* antd4 的 --xgen-* 颜色变量（来自 light.css），antd6 移除 light.css 后丢失，需补回 */
+:root {
+	--xgen-primary-color: #3371fc;
+	--xgen-primary-1: #f0f7ff;
+	--xgen-success-color: #52c41a;
+	--xgen-error-color: #ff4d4f;
+	--xgen-warning-color: #faad14;
+	--xgen-info-color: #1890ff;
+
+	// antd6 tag 默认 bg/radius，对齐 antd4
+	--xgen-tag-default-bg: #f0f0f0;
+	--xgen-border-radius-sm: 6px;
+}
+
+[data-theme='dark'] {
+	--xgen-primary-color: #4580ff;
+	--xgen-primary-1: rgba(69, 128, 255, 0.15);
+}
+
 /* antd4 链接无下划线；移除 light.css 后需手动重置 */
 a {
 	text-decoration: none;
@@ -87,6 +106,90 @@ a {
 
 	// antd6 默认 padding 0 15px（高度由 height 撑），对齐 antd4 的 7px 15px
 	padding: 7px 15px !important;
+}
+
+// === Button: 对齐 antd4 ===
+// default：antd4 背景 #f9f9f9、边框 #f5f5f5（很浅）；antd6 默认 #fff / #d9d9d9
+// 排除 CUI 自定义颜色 class（.primary/.success/.warning/.danger），它们有自己的实心底色
+.xgen-btn-default:not(.primary):not(.success):not(.warning):not(.danger) {
+	background-color: #f9f9f9 !important;
+	border-color: #f5f5f5 !important;
+
+	&:hover,
+	&:focus,
+	&:active {
+		background-color: #f9f9f9 !important;
+		border-color: #5c95ff !important;
+		color: #5c95ff !important;
+	}
+}
+
+// primary：antd4 边框与背景同色（#3371fc），hover 时变 #5c95ff；antd6 默认透明边框
+.xgen-btn-primary {
+	border-color: #3371fc !important;
+
+	&:hover,
+	&:focus,
+	&:active {
+		background-color: #5c95ff !important;
+		border-color: #5c95ff !important;
+	}
+}
+
+// CUI 自定义语义按钮（default 按钮 + 语义 class），antd4 为实心无底边框；
+// antd6 需 !important 覆盖 default 的底色/边框/hover 蓝字
+.xgen-btn {
+	&.primary {
+		background-color: var(--color_main) !important;
+		border-color: var(--color_main) !important;
+		color: #fff !important;
+
+		&:hover,
+		&:focus,
+		&:active {
+			filter: brightness(1.1);
+			color: #fff !important;
+		}
+	}
+
+	&.success {
+		background-color: var(--color_success) !important;
+		border-color: var(--color_success) !important;
+		color: #fff !important;
+
+		&:hover,
+		&:focus,
+		&:active {
+			filter: brightness(1.1);
+			color: #fff !important;
+		}
+	}
+
+	&.warning {
+		background-color: var(--color_warning) !important;
+		border-color: var(--color_warning) !important;
+		color: #fff !important;
+
+		&:hover,
+		&:focus,
+		&:active {
+			filter: brightness(1.1);
+			color: #fff !important;
+		}
+	}
+
+	&.danger {
+		background-color: var(--color_danger) !important;
+		border-color: var(--color_danger) !important;
+		color: #fff !important;
+
+		&:hover,
+		&:focus,
+		&:active {
+			filter: brightness(1.1);
+			color: #fff !important;
+		}
+	}
 }
 
 // message
@@ -220,10 +323,32 @@ a {
 	.xgen-tooltip-arrow {
 		transform: none !important;
 
+		// antd6 arrow-content 默认 0 尺寸且 static，导致 after 三角错位；对齐 antd4
 		.xgen-tooltip-arrow-content {
+			position: absolute !important;
+			display: block !important;
+			width: 11px !important;
+			height: 11px !important;
+			top: 0 !important;
 			box-shadow: var(--shadow);
+
+			&::after {
+				width: 12px !important;
+				height: 12px !important;
+			}
 		}
 	}
+}
+
+// === Tag: 对齐 antd4 ===
+// antd6 默认 tag：bg #f5f5f5、border transparent、radius 4px
+// antd4 默认 tag：bg #f0f0f0、border #f5f5f5、radius 6px
+// 用 CSS 变量覆盖 antd6 的默认值，避免与彩色 tag 规则冲突
+.xgen-tag {
+	--xgen-tag-default-bg: #f0f0f0 !important;
+	--xgen-border-radius-sm: 6px !important;
+	border-radius: 6px !important;
+	border-color: #f5f5f5 !important;
 }
 
 // Pagination

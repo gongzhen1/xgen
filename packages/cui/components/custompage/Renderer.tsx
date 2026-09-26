@@ -8,6 +8,7 @@ import NotFound from '@/pages/404'
 
 import { isLegacyIiife, loadCustomPageComponent, loadCustomPageModule } from './compile'
 import { resolveVendorBase } from '@/utils/vendor-importmap'
+import { DataTable } from '@/components/ui'
 
 // antd 4.24 入口没有 default 导出，用 require 取完整 CJS 导出表（供自定义页面运行时注入）
 const antd: any = require('antd')
@@ -71,7 +72,7 @@ const CustomPageView = ({ pageName, props = {}, height }: IProps) => {
 		}
 		// 注入运行时依赖（与宿主共享 React/ReactDOM/antd 实例）
 		const w: any = window
-		w.__CustomPageRuntime = { React, ReactDOM, antd, ...(React as any), ...antd }
+		w.__CustomPageRuntime = { React, ReactDOM, antd, DataTable, ...(React as any), ...antd }
 
 		setLoading(true)
 		fetch(`/api/custompage/render/${encodeURIComponent(pageName)}`)
