@@ -35,7 +35,9 @@ const Index = (props: IPropsHelmet) => {
 		<Fragment>
 			<Helmet>
 				<link rel='shortcut icon' type={faviconType} href={faviconUrl} />
-				<link rel='stylesheet' href={`/${$runtime.BASE}/theme/${theme}.css`} />
+				{/* antd6 用 CSS-in-JS，不再加载 antd4 编译的 theme/light.css；直接加载项目基础样式 */}
+				<link rel='stylesheet' href={`/${$runtime.BASE}/styles/atom.min.css`} />
+				<link rel='stylesheet' href={`/${$runtime.BASE}/styles/init.css`} />
 				<title>{app_info.name ? `${app_info.name} - ${app_info.description}` : config.name}</title>
 			</Helmet>
 		</Fragment>

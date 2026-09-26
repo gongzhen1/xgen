@@ -1,8 +1,8 @@
 import '@/styles/index.less'
 
-import { ConfigProvider } from 'antd'
+import { ConfigProvider, theme as antdTheme } from 'antd'
 import { observer } from 'mobx-react-lite'
-import { useEffect, useLayoutEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import { HelmetProvider } from 'react-helmet-async'
 import { container } from 'tsyringe'
 
@@ -75,6 +75,48 @@ const Index = () => {
 	const [global] = useState(() => container.resolve(GlobalModel))
 	const [isInitialLoad, setIsInitialLoad] = useState(true)
 	const { pathname, search } = useLocation()
+	const is_dark = global.theme === 'dark'
+
+	// antd6 theme tokens：对齐 antd4 的视觉（主色、控件高度、圆角、表格/菜单/输入框等）
+	const themeConfig = useMemo(
+		() => ({
+			algorithm: is_dark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+			token: {
+				colorPrimary: '#3371fc',
+				controlHeight: 38,
+				borderRadius: 6,
+				borderRadiusLG: 6,
+				colorBgContainerDisabled: is_dark ? 'rgba(255,255,255,0.04)' : '#f0f0f0',
+				boxShadowSecondary: '4px 4px 40px rgba(0, 0, 0, 0.05)',
+				colorText: is_dark ? '#a2a5b9' : '#111111',
+				colorBorder: is_dark ? '#404046' : '#d9d9d9'
+			},
+			components: {
+				Table: {
+					headerBg: is_dark ? 'rgba(255,255,255,0.04)' : '#f0f0f0',
+					headerColor: is_dark ? 'rgba(255,255,255,0.65)' : 'rgba(0, 0, 0, 0.65)',
+					rowHoverBg: is_dark ? 'rgba(255,255,255,0.04)' : '#f5f5f5'
+				},
+				Menu: {
+					itemSelectedBg: is_dark ? '#111111' : '#f7f7f7',
+					itemSelectedColor: is_dark ? '#4580ff' : '#3371fc',
+					itemBorderRadius: 0,
+					itemHeight: 40,
+					itemMarginInline: 0,
+					activeBarWidth: 3
+				},
+				Input: {
+					colorBgContainer: is_dark ? '#232326' : '#f9f9f9',
+					paddingBlock: 7
+				},
+				Select: {
+					colorBgContainer: is_dark ? '#232326' : '#f9f9f9',
+					activeOutlineColor: 'rgba(51, 113, 252, 0.2)'
+				}
+			}
+		}),
+		[is_dark]
+	)
 	const isLogin = pathname.includes('/login/') || pathname === '/'
 	const isAuth = pathname === '/auth'
 	const isStandalone = isStandalonePage(pathname)
@@ -217,7 +259,7 @@ const Index = () => {
 	return (
 		<HelmetProvider>
 			<Helmet {...propsHelmet} />
-			<ConfigProvider prefixCls='xgen'>
+			<ConfigProvider prefixCls='xgen' theme={themeConfig}>
 				<GlobalContext.Provider value={global}>{renderMainContent()}</GlobalContext.Provider>
 			</ConfigProvider>
 		</HelmetProvider>

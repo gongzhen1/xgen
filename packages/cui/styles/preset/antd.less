@@ -1,8 +1,71 @@
+/* 全局隐藏滚动条（对齐 antd4 视觉），仅表格体恢复 9px */
+::-webkit-scrollbar {
+	width: 0;
+	height: 0;
+}
+
+::-webkit-scrollbar-thumb {
+	background-color: transparent;
+}
+
+/* .xgen-table-body 水平滚动条：恢复 9px，thumb 浅灰，轨道透明，无两端箭头 */
+.xgen-table-body {
+	&::-webkit-scrollbar {
+		width: unset;
+		height: 9px;
+	}
+
+	&::-webkit-scrollbar-thumb {
+		background-color: var(--color_border_light, #d9d9d9);
+		border-radius: 12px;
+	}
+
+	&::-webkit-scrollbar-track,
+	&::-webkit-scrollbar-track-piece {
+		background: transparent;
+	}
+
+	&::-webkit-scrollbar-button,
+	&::-webkit-scrollbar-button:horizontal,
+	&::-webkit-scrollbar-button:horizontal:start,
+	&::-webkit-scrollbar-button:horizontal:end,
+	&::-webkit-scrollbar-button:horizontal:single-button,
+	&::-webkit-scrollbar-button:horizontal:start:decrement,
+	&::-webkit-scrollbar-button:horizontal:end:increment,
+	&::-webkit-scrollbar-button:vertical,
+	&::-webkit-scrollbar-button:vertical:start,
+	&::-webkit-scrollbar-button:vertical:end,
+	&::-webkit-scrollbar-button:vertical:single-button,
+	&::-webkit-scrollbar-button:vertical:start:decrement,
+	&::-webkit-scrollbar-button:vertical:end:increment {
+		display: none !important;
+		width: 0;
+		height: 0;
+	}
+}
+
+/* antd6 表格粘性滚动条默认显示（高 8px），antd4 隐藏；对齐 antd4 */
+.xgen-table-sticky-scroll {
+	display: none !important;
+}
+
+/* antd4 链接无下划线；移除 light.css 后需手动重置 */
+a {
+	text-decoration: none;
+}
+
 .xgen-input,
 .xgen-input-number,
 .xgen-input-affix-wrapper,
-.xgen-select-selector {
+.xgen-select-selector,
+.xgen-select {
 	border: none !important;
+}
+
+// antd6 Select 高度对齐 antd4（38px）：Input 的 paddingBlock:7 会被 Select 继承导致 36px
+.xgen-select {
+	padding-block: 8px !important;
+	min-height: 38px !important;
 }
 
 .anticon {
@@ -21,6 +84,9 @@
 	i {
 		margin-right: 3px;
 	}
+
+	// antd6 默认 padding 0 15px（高度由 height 撑），对齐 antd4 的 7px 15px
+	padding: 7px 15px !important;
 }
 
 // message
@@ -68,6 +134,11 @@
 	backdrop-filter: blur(24px);
 }
 
+// antd6 modal-container 默认有 20px 24px 内边距，导致表单变窄；antd4 为 0
+.xgen-modal-container {
+	padding: 0 !important;
+}
+
 .custom_modal {
 	.xgen-modal {
 		&-title {
@@ -91,6 +162,7 @@
 
 		&-content {
 			overflow: hidden;
+			padding: 0;
 			border-radius: var(--radius);
 		}
 
@@ -139,7 +211,15 @@
 
 // Tooltip
 .xgen-tooltip {
+	// antd6 箭头 ::before 默认有黑色矩形背景，antd4 为透明；对齐 antd4
+	.xgen-tooltip-arrow::before {
+		background-color: transparent !important;
+	}
+
+	// antd6 arrow 有 rotate(180deg) 变换，导致箭头翻转到图标中间；对齐 antd4
 	.xgen-tooltip-arrow {
+		transform: none !important;
+
 		.xgen-tooltip-arrow-content {
 			box-shadow: var(--shadow);
 		}
@@ -195,4 +275,22 @@
 
 .xgen-dropdown-menu-item:hover {
 	background-color: var(--color_bg_nav_hover) !important;
+}
+
+// antd6 表头字重默认 600，对齐 antd4 的常规字重
+.xgen-table-thead > tr > th {
+	font-weight: 400 !important;
+}
+
+// antd4 @table-bg: transparent，antd6 默认白色背景会遮住页面底色，改回透明
+.xgen-table {
+	background: transparent !important;
+}
+
+// antd6 Input 聚焦边框颜色对齐 antd4（rgba(51,113,252,0.2)）
+// Select 的聚焦光晕由 AntdProvider 的 activeOutlineColor token 驱动
+.xgen-input:focus,
+.xgen-input-focused,
+.xgen-input-affix-wrapper-focused {
+	box-shadow: 0 0 0 2px rgba(51, 113, 252, 0.2) !important;
 }

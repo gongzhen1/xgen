@@ -17,7 +17,7 @@ export default defineConfig({
 	metas,
 	test: false,
 	valtio: false,
-	antd: { import: false, style: undefined },
+	antd: { import: true, style: undefined },
 	codeSplitting: { jsStrategy: 'granularChunks' },
 	locale: { default: 'zh-CN', antd: true, baseNavigator: true },
 	conventionRoutes,
