@@ -242,6 +242,12 @@ a {
 	padding: 0 !important;
 }
 
+// 但 Modal.confirm / info / success 等内容型弹窗没有 header/footer，正文内边距只能由 body 提供；
+// 上面的 container 归零后若不补回，文字会紧贴四边。数值对齐 antd4 主题
+.xgen-modal-confirm .xgen-modal-body {
+	padding: 32px 32px 24px !important;
+}
+
 .custom_modal {
 	.xgen-modal {
 		&-title {

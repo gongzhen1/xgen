@@ -9,9 +9,31 @@ export interface TableColumn<T = any> {
 	align?: 'left' | 'center' | 'right'
 	render?: (value: any, record: T, index: number) => React.ReactNode
 	sorter?: boolean | ((a: T, b: T) => number)
+	filter?: ColumnFilterConfig // 表头漏斗筛选配置
+	editable?: CellEditableConfig // 单元格点击编辑配置
 	fixed?: 'left' | 'right'
 	ellipsis?: boolean
 	resizable?: boolean // 是否可拖拽调整宽度
+}
+
+// 表头漏斗筛选配置
+export interface ColumnFilterConfig {
+	type: 'text' | 'set' | 'range'
+	options?: string[] // type=set 时的候选项
+	placeholder?: string
+}
+
+// 列筛选值（受控传回页面，由页面过滤数据）
+export type ColumnFilterValue =
+	| { type: 'text'; value: string }
+	| { type: 'set'; values: string[] }
+	| { type: 'range'; min: number | null; max: number | null }
+
+// 单元格点击编辑配置
+export interface CellEditableConfig {
+	type: 'text' | 'number' | 'select' | 'datetime'
+	options?: { label: string; value: any }[] // type=select 时的候选项
+	format?: string // type=datetime 时的显示格式，默认 'YYYY-MM-DD HH:mm'
 }
 
 // 列宽配置接口
@@ -111,11 +133,23 @@ export interface DataTableProps<T = any> {
 
 	// 操作相关
 	actions?: TableAction<T>[]
+
+	// 行勾选（受控）：传入即渲染勾选列
 	rowSelection?: {
-		type: 'checkbox' | 'radio'
 		selectedRowKeys?: React.Key[]
 		onChange?: (selectedRowKeys: React.Key[], selectedRows: T[]) => void
 	}
+
+	// 排序（受控）：表头可排序列点击后回调
+	sort?: { key: string; order: 'asc' | 'desc' } | null
+	onSortChange?: (key: string, order: 'asc' | 'desc' | null) => void
+
+	// 表头漏斗筛选（受控）：key 为列 key
+	columnFilters?: Record<string, ColumnFilterValue>
+	onColumnFilter?: (key: string, value: ColumnFilterValue | null) => void
+
+	// 单元格编辑保存回调（配合 column.editable）
+	onCellSave?: (record: T, dataIndex: string, value: any) => void
 
 	// 样式相关
 	size?: 'small' | 'middle' | 'large'

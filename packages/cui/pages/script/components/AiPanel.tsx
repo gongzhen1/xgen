@@ -36,7 +36,12 @@ function buildSystemSkill(fileType: string, isAdvanced: boolean): string {
 			'- columns 是对象数组：{ key, title, dataIndex, render?: (value, record) => ReactNode, ellipsis, align?: \'left|center|right\' }，不要写 import 类型\n' +
 			'- 列宽外部统一控制：columnWidthPreset="compact|normal|wide"；columnWidths={{ 列key: { width, minWidth, flex } }} 覆盖预设；autoFitColumns 自适应容器\n' +
 			'- actions={[{ key: \'delete\', label: \'删除\', onClick: (record) => {} }]} 会自动追加「操作」列（key 为 delete 自动标红）\n' +
-			'- 不需要分页时 pagination={false}；无限滚动用 hasMore + onLoadMore + loadingMore\n' +
+			'- 行勾选：rowSelection={{ selectedRowKeys, onChange: (keys, rows) => {} }}，自动渲染勾选列+全选（半选态）+选中行高亮\n' +
+			'- 排序：column 加 sorter: true，配合 sort={{ key, order: \'asc|desc\' }} 受控 + onSortChange={(key, order) => {}}（order 为 null 表示取消排序）\n' +
+			'- 表头漏斗筛选：column 加 filter={{ type: \'text|set|range\', options: [\'a\',\'b\'] }}，配合 columnFilters 受控 + onColumnFilter={(key, value) => {}}；value 形如 {type:\'text\',value}/{type:\'set\',values}/{type:\'range\',min,max}，数据过滤由页面实现\n' +
+			'- 单元格点击编辑：column 加 editable={{ type: \'text|number|select\', options: [{label,value}] }}，配合 onCellSave={(record, dataIndex, value) => {}} 保存；Enter/失焦保存，Esc 取消\n' +
+			'- 内置分页：pagination={{ current, pageSize, total, onChange: (page, pageSize) => {} }}，组件底部渲染分页栏；不需要分页时 pagination={false}\n' +
+			'- 无限滚动用 hasMore + onLoadMore + loadingMore（与分页二选一）\n' +
 			'- 注意：DataTable 只负责渲染，不发起数据请求，数据由页面自行获取后传入\n\n' +
 			'【可用工具函数】\n' +
 			'message.success/error/warning/info\n\n' +

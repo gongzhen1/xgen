@@ -150,7 +150,7 @@
 	flex-shrink: 0;
 	min-width: 100%; // 最小宽度为容器宽度
 	width: fit-content; // 宽度适配内容，可以超出容器
-	height: 48px; // 固定表头高度
+	height: 36px; // 表头高度与参考设计一致
 	overflow-x: auto; // 支持横向滚动
 	overflow-y: hidden; // 隐藏纵向滚动
 
@@ -164,22 +164,162 @@
 }
 
 .headerCell {
-	padding: 12px 16px;
+	box-sizing: border-box; // 关键：height 含内边距，避免 content-box 撑高
+	padding: 8px 8px;
 	font-weight: 500;
-	font-size: 12px;
+	font-size: 12.5px;
 	color: var(--color_neo_text_primary);
 	border-right: 1px solid var(--color_neo_border_card);
 	display: flex;
 	align-items: center;
+	gap: 2px;
 	white-space: nowrap;
 	flex-shrink: 0; // 防止压缩
-	height: 48px; // 固定表头高度
+	height: 36px; // 表头高度与参考设计一致（py-2 + 12.5px 文字）
 	overflow: hidden; // 隐藏溢出内容
 	text-overflow: ellipsis; // 文字截断显示省略号
-	min-width: 80px; // 设置最小宽度，与表体单元格一致
+	min-width: 60px; // 设置最小宽度，与表体单元格一致
 
 	&:last-child {
 		border-right: none;
+	}
+}
+
+.headerTitle {
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+// 选择列（勾选框居中）
+.selectCellInner {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+}
+
+// 表头排序按钮
+.sortBtn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 18px;
+	height: 18px;
+	padding: 0;
+	border: none;
+	background: transparent;
+	color: var(--color_neo_text_secondary);
+	cursor: pointer;
+	border-radius: 3px;
+	flex-shrink: 0;
+
+	&:hover {
+		color: var(--color_main);
+		background: rgba(var(--r), var(--g), var(--b), 0.08);
+	}
+}
+
+.sortBtnActive {
+	color: var(--color_main);
+}
+
+// 表头筛选漏斗按钮
+.filterBtn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	height: 18px;
+	padding: 0 3px;
+	border: none;
+	background: transparent;
+	color: var(--color_neo_text_secondary);
+	cursor: pointer;
+	border-radius: 3px;
+	flex-shrink: 0;
+
+	&:hover {
+		color: var(--color_main);
+		background: rgba(var(--r), var(--g), var(--b), 0.08);
+	}
+}
+
+.filterBtnActive {
+	color: var(--color_main);
+	background: rgba(var(--r), var(--g), var(--b), 0.12);
+}
+
+.filterCount {
+	font-size: 10px;
+	line-height: 1;
+	margin-left: 1px;
+}
+
+// 可编辑单元格（悬浮提示可点击编辑）
+.editableCell {
+	width: 100%;
+	padding: 0 4px;
+	margin: 0 -4px;
+	border-radius: 2px;
+	cursor: text;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	box-sizing: border-box;
+
+	&:hover {
+		background: rgba(var(--r), var(--g), var(--b), 0.08);
+	}
+}
+
+// 选中行高亮
+.rowSelected {
+	background: rgba(var(--r), var(--g), var(--b), 0.06) !important;
+
+	&:hover {
+		background: rgba(var(--r), var(--g), var(--b), 0.1) !important;
+	}
+}
+
+// 内置分页底栏
+.tableFooter {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	padding: 8px 12px;
+	border-top: 1px solid var(--color_neo_border_card);
+	background: var(--color_neo_bg_header);
+	flex-shrink: 0;
+}
+
+// 表头筛选弹层（Popover 渲染在 portal，需全局类）
+:global {
+	.dt-filter-panel {
+		width: 220px;
+		font-size: 12px;
+
+		.dt-filter-head {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			margin-bottom: 8px;
+			font-weight: 500;
+			color: var(--color_neo_text_primary);
+		}
+
+		.dt-filter-list {
+			display: flex;
+			flex-direction: column;
+			gap: 4px;
+			max-height: 180px;
+			overflow-y: auto;
+		}
+
+		.dt-filter-foot {
+			margin-top: 8px;
+			padding-top: 6px;
+			border-top: 1px solid var(--color_neo_border_card);
+			display: flex;
+			justify-content: space-between;
+		}
 	}
 }
 
@@ -221,7 +361,7 @@
 .tableRow {
 	display: flex;
 	border-bottom: 1px solid var(--color_neo_border_card);
-	min-height: 48px;
+	min-height: 30px; // 紧凑行高
 	min-width: 100%; // 最小宽度为容器宽度
 	width: fit-content; // 宽度适配内容，可以超出容器
 	transition: background-color 0.2s;
@@ -244,8 +384,9 @@
 }
 
 .bodyCell {
-	padding: 8px 16px;
-	font-size: 12px;
+	box-sizing: border-box; // 关键：min-height 30px 含内边距（content-box 会变成 30+8=38）
+	padding: 4px 8px; // 上下 4px：保证勾选框(22px)/徽章等内容在 30px 行内不撑高
+	font-size: 13px;
 	color: var(--color_neo_text_primary);
 	border-right: 1px solid var(--color_neo_border_card);
 	display: flex;
@@ -253,13 +394,176 @@
 	white-space: pre-wrap; // 支持换行和保留空格
 	word-wrap: break-word; // 长单词自动换行
 	word-break: break-all; // 必要时在任意字符处换行
-	line-height: 1.4; // 增加行高，提升多行文本可读性
+	line-height: 1.35;
 	flex-shrink: 0; // 防止压缩
-	min-height: 48px; // 确保最小高度与行高一致
-	min-width: 80px; // 设置最小宽度，确保有足够内容宽度
+	min-height: 30px; // 行高含内边距共 30px
+	min-width: 60px; // 设置最小宽度，确保有足够内容宽度
 
 	&:last-child {
 		border-right: none;
+	}
+}
+
+// 编辑态单元格去掉内边距，让编辑控件与单元格完全重合（Excel 风格，兼容所有密度预设）
+.bodyCell:has(> .editingWrap) {
+	padding: 0 !important;
+}
+
+// 行内编辑容器：铺满整个单元格（与单元格同尺寸，Excel 风格）
+// 提升选择器强度（.dataTableContainer .editingWrap = 2 个 hash 类），确保压过宿主全局预设
+.dataTableContainer .editingWrap {
+	flex: 1;
+	align-self: stretch; // 高度撑满单元格（配合 :has 去掉单元格内边距）
+	display: flex;
+	align-items: stretch;
+	min-width: 0;
+
+	// 编辑控件：30px 高（与行高一致）、无边框、透明背景
+	// 注意：宿主 ConfigProvider prefixCls='xgen'，组件真实类名是 .xgen-* 而非 .ant-*
+	// 带 !important 以覆盖 controlHeight: 38 令牌驱动的 cssinjs 样式
+	:global(.xgen-input) {
+		height: 30px !important;
+		line-height: 28px !important;
+		padding: 0 8px !important;
+		font-size: 12.5px !important;
+		border: none !important;
+		border-radius: 0 !important;
+		box-shadow: none !important;
+		background: transparent !important;
+	}
+
+	:global(.xgen-input-number) {
+		// 高度跟随单元格（100%）而非写死 30px：行内若有更高的单元格把行撑高，输入框仍能撑满并保持文字垂直居中
+		height: 100% !important;
+		width: 100% !important;
+		// 关键：内部 input 只有 22px，root 30px；antd6 默认 align-items:normal(=stretch)，
+		// 而 input 有显式 height 无法被拉伸，于是顶部对齐导致文字偏上。改为居中。
+		display: flex !important;
+		align-items: center !important;
+		border: none !important;
+		border-radius: 0 !important;
+		box-shadow: none !important;
+		background: transparent !important;
+		// antd6 borderless 聚焦时仍会给 root 加 1px 主色 outline（实测蓝框来源）
+		outline: none !important;
+	}
+
+	:global(.xgen-input-number-input) {
+		height: 22px !important;
+		line-height: 22px !important;
+		// padding-right 31px：右侧 actions 宽 27 + right 偏移 4，必须给足右内边距，
+		// 否则右对齐的数字会钻进 absolute 的 actions 下方造成重叠
+		padding: 0 31px 0 8px !important;
+		// 关键：Chromium 中 input 光标(caret)高度由 font-size 决定，不随 line-height 缩
+		// （实测 lh22 光标 11px / lh16 光标 10px）；12px 字号下光标约 10px，在 30px 行里更协调
+		font-size: 12px !important;
+		text-align: right;
+		background: transparent;
+		outline: none !important;
+	}
+
+	// antd6 右侧步进动作区（真实类名 actions，旧版 handler-wrap 已不存在）
+	:global(.xgen-input-number-actions) {
+		// 整体右移 4px：图标距单元格右边 = 4 + actions 内 9 = 13px
+		right: 4px !important;
+		border: none !important;
+		background: transparent !important;
+	}
+
+	// 步进按钮（up/down）：去掉图标左侧的竖分隔线（antd6 默认 border-left:1px solid #d9d9d9）
+	:global(.xgen-input-number-action) {
+		border: none !important;
+		background: transparent !important;
+	}
+
+	:global(.xgen-select) {
+		width: 100% !important;
+		height: 30px !important;
+		// 关键：antd6 令牌给单选 Select 设了 min-height（38px），CSS 中 min-height 恒压过 height（含 !important）
+		min-height: 30px !important;
+		box-sizing: border-box !important;
+		padding: 0 !important;
+		font-size: 12.5px;
+		outline: none !important;
+		box-shadow: none !important;
+	}
+
+	// antd6 Select 全新 DOM：.xgen-select-content 替代旧版 .ant-select-selector
+	:global(.xgen-select-content) {
+		height: 30px !important;
+		min-height: 30px !important;
+		display: flex !important;
+		align-items: center !important;
+		// padding-right 22px：给箭头预留位置，避免长文本压到箭头
+		padding: 0 22px 0 8px !important;
+		background: transparent !important;
+		border-radius: 0 !important;
+		border: none !important;
+		outline: none !important;
+		box-shadow: none !important;
+	}
+
+	:global(.xgen-select-input) {
+		height: 28px !important;
+		outline: none !important;
+	}
+
+	// Select 下拉箭头：suffix 实测为 position:static（flex 子元素），写 right 无效
+	// 改为绝对定位，离单元格右边 8px
+	:global(.xgen-select-suffix) {
+		position: absolute !important;
+		right: 8px !important;
+		top: 50% !important;
+		transform: translateY(-50%) !important;
+		margin: 0 !important;
+	}
+
+	// ===== 日期时间编辑器（DatePicker showTime）=====
+	:global(.xgen-picker) {
+		width: 100% !important;
+		height: 30px !important;
+		min-height: 30px !important;
+		box-sizing: border-box !important;
+		padding: 0 !important;
+		border: none !important;
+		border-radius: 0 !important;
+		box-shadow: none !important;
+		background: transparent !important;
+		outline: none !important;
+	}
+
+	:global(.xgen-picker-input) {
+		height: 22px !important;
+		line-height: 22px !important;
+		padding: 0 8px !important;
+		font-size: 12.5px !important;
+		background: transparent;
+	}
+
+	// 日历图标：离右边框留 8px
+	:global(.xgen-picker-suffix) {
+		right: 8px !important;
+	}
+}
+
+// 操作列：紧凑化动作按钮，保证 30px 行高不被撑开
+.actionsCell {
+	display: flex;
+	align-items: center;
+	width: 100%;
+
+	:global(.xgen-space) {
+		display: flex;
+		align-items: center;
+		flex-wrap: nowrap;
+	}
+
+	[class*='actionButton'] {
+		height: 20px !important;
+		padding: 0 4px !important;
+		box-sizing: border-box !important;
+		display: inline-flex !important;
+		align-items: center !important;
 	}
 }
 
@@ -337,29 +641,39 @@
 	}
 }
 
-// 紧凑模式
+// 紧凑模式（size='small'）
 .customTable.compact {
 	.headerCell,
 	.bodyCell {
-		padding: 4px 8px;
-		font-size: 11px;
+		padding: 4px 6px;
+		font-size: 12px;
 	}
 
 	.tableRow {
-		min-height: 36px;
+		min-height: 26px;
+	}
+
+	.headerCell,
+	.tableHeader {
+		height: 30px;
 	}
 }
 
-// 大尺寸模式
+// 大尺寸模式（size='large'）
 .customTable.large {
 	.headerCell,
 	.bodyCell {
-		padding: 12px 16px;
-		font-size: 13px;
+		padding: 10px 14px;
+		font-size: 13.5px;
 	}
 
 	.tableRow {
-		min-height: 56px;
+		min-height: 44px;
+	}
+
+	.headerCell,
+	.tableHeader {
+		height: 44px;
 	}
 }
 
