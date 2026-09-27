@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Input, Modal, message } from 'antd'
+import Editor from 'react-monaco-editor'
 import { useMemoizedFn } from 'ahooks'
 
 const { TextArea } = Input
@@ -19,7 +20,7 @@ function buildSystemSkill(fileType: string, isAdvanced: boolean): string {
 			'========== 规则 A：antd 方案（默认） ==========\n' +
 			'【运行时环境】\n' +
 			'- 无 import，无外部依赖，所有组件和 hooks 由运行时全局注入\n' +
-			'- React 19 + antd 4.24，共享宿主实例\n' +
+			'- React 19 + antd 6，共享宿主实例\n' +
 			'- 样式尽量不要用内联style可以把style抽成class css块，单独放到一块管理，做好缩减和格式化、不要用 styled-components/emotion\n\n' +
 			'【可用 hooks】\n' +
 			'useState, useEffect, useRef, useMemo, useCallback, useReducer\n\n' +
@@ -31,18 +32,50 @@ function buildSystemSkill(fileType: string, isAdvanced: boolean): string {
 			'反馈：Button, Alert, message, Modal, Drawer, Popconfirm, Popover, Progress, Result, Spin\n' +
 			'排版：Typography（及其子组件 Title, Paragraph, Text, Link —— 已全局解构，可直接写 <Title>）\n' +
 			'其他：ConfigProvider\n\n' +
-			'【DataTable 轻量数据表格用法（列宽可配/自带操作列/无限滚动）】\n' +
-			'- 基本写法：<DataTable data={rows} columns={columns} rowKey="id" loading={loading} />\n' +
-			'- columns 是对象数组：{ key, title, dataIndex, render?: (value, record) => ReactNode, ellipsis, align?: \'left|center|right\' }，不要写 import 类型\n' +
-			'- 列宽外部统一控制：columnWidthPreset="compact|normal|wide"；columnWidths={{ 列key: { width, minWidth, flex } }} 覆盖预设；autoFitColumns 自适应容器\n' +
-			'- actions={[{ key: \'delete\', label: \'删除\', onClick: (record) => {} }]} 会自动追加「操作」列（key 为 delete 自动标红）\n' +
-			'- 行勾选：rowSelection={{ selectedRowKeys, onChange: (keys, rows) => {} }}，自动渲染勾选列+全选（半选态）+选中行高亮\n' +
-			'- 排序：column 加 sorter: true，配合 sort={{ key, order: \'asc|desc\' }} 受控 + onSortChange={(key, order) => {}}（order 为 null 表示取消排序）\n' +
-			'- 表头漏斗筛选：column 加 filter={{ type: \'text|set|range\', options: [\'a\',\'b\'] }}，配合 columnFilters 受控 + onColumnFilter={(key, value) => {}}；value 形如 {type:\'text\',value}/{type:\'set\',values}/{type:\'range\',min,max}，数据过滤由页面实现\n' +
-			'- 单元格点击编辑：column 加 editable={{ type: \'text|number|select\', options: [{label,value}] }}，配合 onCellSave={(record, dataIndex, value) => {}} 保存；Enter/失焦保存，Esc 取消\n' +
-			'- 内置分页：pagination={{ current, pageSize, total, onChange: (page, pageSize) => {} }}，组件底部渲染分页栏；不需要分页时 pagination={false}\n' +
-			'- 无限滚动用 hasMore + onLoadMore + loadingMore（与分页二选一）\n' +
-			'- 注意：DataTable 只负责渲染，不发起数据请求，数据由页面自行获取后传入\n\n' +
+			'【DataTable 数据表格用法（列宽/勾选/排序/表头筛选/单元格编辑/分页或无限滚动）】\n' +
+			'- 基本写法：<DataTable data={rows} columns={columns} rowKey="id" loading={loading} size="small" />\n' +
+			'- 只负责渲染，不发数据请求：data 由页面自行获取后传入；每行必须有 id（rowKey 默认取 record.id，取不到则退化成行索引）\n' +
+			'- columns 对象数组：{ key, title, dataIndex, width?: number, align?: \'left|center|right\', render?: (value, record, index) => ReactNode }，不要写 import 类型\n' +
+			'- 列宽：优先取 column.width，其次 columnWidths[列key]，两者都没有该列走 flex 自适应；columnWidthPreset="compact|normal|wide" 只对固定列名生效（scenario/source/query/context/score/created_at/actions），自定义列名必须自己给 width\n' +
+			'- columnWidths={{ 列key: { width, minWidth, maxWidth, flex } }} 按列覆盖；autoFitColumns 只在「所有列都写了 width 且总宽小于容器」时把剩余宽度按比例补满，想让表格铺满整行就给每列写 width 再加 autoFitColumns\n' +
+			'- size="small|middle|large"（默认 middle），行高 26/30/44px，Excel 风格紧凑表格用 small\n' +
+			'- 行勾选：rowSelection={{ selectedRowKeys, onChange: (keys, rows) => {} }}，自动渲染勾选列（宽 40）+ 全选（含半选态）+ 选中行高亮\n' +
+			'- 排序：column 加 sorter: true（只负责显示排序图标），真实排序必须页面自己实现，配合 sort={{ key, order: \'asc|desc\' }} 受控 + onSortChange={(key, order) => {}}（order 为 null 表示取消排序）\n' +
+			'- 表头漏斗筛选：column 加 filter={{ type: \'text|set|range\', options: [\'a\',\'b\'] }}（set 用 options），配合 columnFilters 受控 + onColumnFilter={(key, value) => {}}；回传 value 形如 {type:\'text\',value}/{type:\'set\',values}/{type:\'range\',min,max}，过滤数据由页面实现\n' +
+			'- 单元格点击编辑：column 加 editable={{ type: \'text|number|select|datetime\', options: [{label,value}], format }}，配合 onCellSave={(record, dataIndex, value) => {}}；点击进入编辑，Enter/失焦保存、Esc 取消，select/datetime 选完即保存（datetime 默认格式 YYYY-MM-DD HH:mm），number 自动取非负值\n' +
+			'- actions={[{ key: \'delete\', label: \'删除\', onClick: (record, index) => {} }]} 自动追加「操作」列，渲染为图标按钮 + hover 提示（key 为 delete 自动标红），可用 disabled/visible 控制\n' +
+			'- 顶部工具栏（关键字搜索框 + 下拉筛选 + 右侧「共 N 条」）必须靠 filters 驱动：filters={[{ key: \'status\', label: \'状态\', type: \'select\', options: [{label,value}], onChange }]}（type 只支持 select/search），配合 searchPlaceholder + onSearch 才显示搜索框；extraActions 也渲染在该工具栏右侧\n' +
+			'- 内置分页：pagination={{ current, pageSize, total, onChange: (page, pageSize) => {} }}，渲染在表格底部；pagination={false} 关闭；pageSizeOptions 固定 [10,20,50]；无限滚动改用 hasMore + onLoadMore + loadingMore（与分页二选一）\n' +
+			'- 空状态用 emptyText 自定义；loading 只在 data 为空时显示整块加载中，刷新已有数据时没有任何 loading 反馈\n' +
+			'- 以下 props 声明了但未实现，禁止使用：bordered、showHeader、scroll、onRow、column.fixed、column.resizable、column.ellipsis（单元格默认就截断省略号）、pagination.showTotal、filter.type="dateRange"\n' +
+			'【DataTable 最小示例骨架】\n' +
+			'```tsx\n' +
+			'export default function Page() {\n' +
+			'  const [rows, setRows] = useState([{ id: 1, name: \'示例\', status: \'待处理\', qty: 3 }])\n' +
+			'  const [selectedKeys, setSelectedKeys] = useState([])\n' +
+			'  const columns = [\n' +
+			'    { key: \'name\', title: \'名称\', dataIndex: \'name\', width: 220 },\n' +
+			'    { key: \'status\', title: \'状态\', dataIndex: \'status\', width: 120, editable: { type: \'select\', options: [{ label: \'待处理\', value: \'待处理\' }] } },\n' +
+			'    { key: \'qty\', title: \'数量\', dataIndex: \'qty\', width: 100, align: \'right\', editable: { type: \'number\' } }\n' +
+			'  ]\n' +
+			'  return (\n' +
+			'    <div style={{ padding: 16 }}>\n' +
+			'      <DataTable\n' +
+			'        data={rows}\n' +
+			'        columns={columns}\n' +
+			'        rowKey="id"\n' +
+			'        size="small"\n' +
+			'        autoFitColumns\n' +
+			'        rowSelection={{ selectedRowKeys: selectedKeys, onChange: setSelectedKeys }}\n' +
+			'        onCellSave={(record, dataIndex, value) =>\n' +
+			'          setRows((prev) => prev.map((r) => (r.id === record.id ? { ...r, [dataIndex]: value } : r)))\n' +
+			'        }\n' +
+			'        pagination={false}\n' +
+			'      />\n' +
+			'    </div>\n' +
+			'  )\n' +
+			'}\n' +
+			'```\n\n' +
 			'【可用工具函数】\n' +
 			'message.success/error/warning/info\n\n' +
 			'【编码规范】\n' +
@@ -59,7 +92,7 @@ function buildSystemSkill(fileType: string, isAdvanced: boolean): string {
 			'【运行时环境】\n' +
 			'- HeroUI v3 + React 19，标准 ESM：组件必须用 import 从 \'@heroui/react\' 引入，hooks 从 \'react\' 引入\n' +
 			'- 组件样式由平台自动注入，禁止 import 任何 css 文件；无需 Provider 包裹\n' +
-			'- 如需混用 antd 组件，可 import { 组件名 } from \'antd\'（antd 4.24）\n\n' +
+			'- 如需混用 antd 组件，可 import { 组件名 } from \'antd\'（antd 6）\n\n' +
 			'【可用组件（严格白名单，仅这些已按需构建，写其他组件会运行时报错）】\n' +
 			'手风琴/折叠：Accordion, Disclosure, DisclosureGroup\n' +
 			'按钮：Button, ButtonGroup, CloseButton, ToggleButton, ToggleButtonGroup\n' +
@@ -312,6 +345,283 @@ function extractCode(raw: string): string {
 	return raw.replace(/^```[\w]*\n?/, '').replace(/```$/, '').trim()
 }
 
+/**
+ * 复制文本到剪贴板。
+ * navigator.clipboard 只在安全上下文（https 或 localhost）存在，
+ * 通过 http://ip:port 访问时它是 undefined，必须退回 execCommand。
+ */
+async function copyToClipboard(text: string): Promise<boolean> {
+	try {
+		if (navigator.clipboard?.writeText) {
+			await navigator.clipboard.writeText(text)
+			return true
+		}
+	} catch {
+		// 权限被拒或非安全上下文，继续走下面的兜底方案
+	}
+
+	const el = document.createElement('textarea')
+	el.value = text
+	el.readOnly = true
+	// 移出视口且不可聚焦滚动，避免 iOS 弹出键盘
+	el.style.position = 'fixed'
+	el.style.top = '-9999px'
+	document.body.appendChild(el)
+	try {
+		el.select()
+		return document.execCommand('copy')
+	} catch {
+		return false
+	} finally {
+		document.body.removeChild(el)
+	}
+}
+
+/** 代码块配色（One Dark 风格，与参考图 / 面板暗色主题统一） */
+const CODE_FONT = 'Menlo, Monaco, Consolas, "Courier New", monospace'
+const CODE_COLORS = {
+	bg: '#1e242f',
+	border: '#2e3545',
+	text: '#d1d3db',
+	icon: '#9aa4b2',
+	iconHover: '#7bb8ff'
+}
+
+const LANG_LABEL: Record<string, string> = {
+	tsx: 'TSX',
+	ts: 'TS',
+	typescript: 'TS',
+	jsx: 'JSX',
+	js: 'JS',
+	javascript: 'JS',
+	json: 'JSON',
+	css: 'CSS',
+	html: 'HTML',
+	yaml: 'YAML',
+	yml: 'YAML',
+	md: 'MD'
+}
+
+/** 围栏语言 → Monaco 语言 id（不支持的一律纯文本） */
+const MONACO_LANG: Record<string, string> = {
+	tsx: 'typescript',
+	ts: 'typescript',
+	typescript: 'typescript',
+	jsx: 'javascript',
+	js: 'javascript',
+	javascript: 'javascript',
+	json: 'json',
+	css: 'css',
+	html: 'html',
+	yaml: 'yaml',
+	yml: 'yaml',
+	md: 'markdown'
+}
+
+// Monaco 编辑器：行号 / 语法高亮 / 横向滚动全部交给编辑器组件自身，避免手写渲染行号错位
+const AI_CODE_THEME = 'ai-code-dark'
+let aiCodeThemeReady = false
+
+function defineAiCodeTheme(monaco: any) {
+	if (aiCodeThemeReady) return
+	monaco.editor.defineTheme(AI_CODE_THEME, {
+		base: 'vs-dark',
+		inherit: true,
+		rules: [
+			{ token: '', foreground: 'd1d3db' },
+			{ token: 'comment', foreground: '7f848e', fontStyle: 'italic' },
+			{ token: 'keyword', foreground: 'c678dd' },
+			{ token: 'keyword.control', foreground: 'c678dd' },
+			{ token: 'keyword.operator', foreground: 'c678dd' },
+			{ token: 'string', foreground: '98c379' },
+			{ token: 'string.escape', foreground: '56b6c2' },
+			{ token: 'number', foreground: 'd19a66' },
+			{ token: 'constant', foreground: 'd19a66' },
+			{ token: 'type', foreground: 'e5c07b' },
+			{ token: 'type.identifier', foreground: 'e5c07b' },
+			{ token: 'class', foreground: 'e5c07b' },
+			{ token: 'function', foreground: '61afef' },
+			{ token: 'tag', foreground: 'e06c75' },
+			{ token: 'attribute.name', foreground: 'd19a66' }
+		],
+		colors: {
+			'editor.background': CODE_COLORS.bg,
+			'editor.foreground': CODE_COLORS.text,
+			'editorLineNumber.foreground': '#4b5263',
+			'editorLineNumber.activeForeground': '#7f848e',
+			'editor.lineHighlightBackground': '#00000000',
+			'editor.lineHighlightBorder': '#00000000',
+			'editor.selectionBackground': '#3e4451',
+			'editorGutter.background': CODE_COLORS.bg,
+			'editorOverviewRuler.border': '#00000000',
+			'editorIndentGuide.background1': '#00000000',
+			'editorIndentGuide.activeBackground1': '#00000000'
+		}
+	})
+	aiCodeThemeReady = true
+}
+
+/** Monaco 在 420px 面板里只读渲染的固定配置 */
+const AI_EDITOR_OPTIONS = {
+	readOnly: true,
+	domReadOnly: true,
+	automaticLayout: true,
+	contextmenu: false,
+	minimap: { enabled: false },
+	lineNumbers: 'on' as const,
+	lineNumbersMinChars: 3,
+	lineDecorationsWidth: 10,
+	glyphMargin: false,
+	folding: false,
+	lineHeight: 18,
+	fontSize: 12,
+	fontFamily: CODE_FONT,
+	tabSize: 2,
+	wordWrap: 'off' as const,
+	scrollBeyondLastLine: false,
+	renderLineHighlight: 'none' as const,
+	overviewRulerLanes: 0,
+	hideCursorInOverviewRuler: true,
+	overviewRulerBorder: false,
+	occurrencesHighlight: false,
+	selectionHighlight: false,
+	renderWhitespace: 'none' as const,
+	guides: { indentation: false },
+	stickyScroll: { enabled: false },
+	padding: { top: 8, bottom: 8 },
+	scrollbar: {
+		verticalScrollbarSize: 8,
+		horizontalScrollbarSize: 8,
+		useShadows: false,
+		alwaysConsumeMouseWheel: false
+	}
+}
+
+/** 把 AI 回复切成「文本 / 代码块」片段：说明文字保留，代码块单独用编辑器框渲染 */
+function splitContent(raw: string): { type: 'text' | 'code'; lang: string; value: string }[] {
+	const parts: { type: 'text' | 'code'; lang: string; value: string }[] = []
+	// 末尾用 $ 兼容流式输出中还没闭合的围栏
+	const re = /```([\w+-]*)\s*\n([\s\S]*?)(?:```|$)/g
+	let last = 0
+	let m: RegExpExecArray | null
+	while ((m = re.exec(raw)) !== null) {
+		const before = raw.slice(last, m.index).trim()
+		if (before) parts.push({ type: 'text', lang: '', value: before })
+		parts.push({ type: 'code', lang: (m[1] || '').toLowerCase(), value: m[2].replace(/\n$/, '') })
+		last = m.index + m[0].length
+	}
+	const rest = raw.slice(last).trim()
+	if (rest) parts.push({ type: 'text', lang: '', value: rest })
+	return parts
+}
+
+/** 代码块：编辑器风格外框（语言徽标 + 行号 + 复制 / 插入到编辑器） */
+const CodeBlock = ({
+	lang,
+	code,
+	onCopy,
+	onInsert
+}: {
+	lang: string
+	code: string
+	onCopy: () => void
+	onInsert: () => void
+}) => {
+	// 编辑器高度按行数撑开（1 行 18px），超过 320px 交给 Monaco 内部滚动
+	const height = Math.min(Math.max(code.split('\n').length * 18 + 16, 64), 320)
+	const iconStyle: React.CSSProperties = { cursor: 'pointer', display: 'block', color: CODE_COLORS.icon }
+	return (
+		<div
+			style={{
+				background: CODE_COLORS.bg,
+				border: `1px solid ${CODE_COLORS.border}`,
+				borderRadius: 8,
+				overflow: 'hidden'
+			}}
+		>
+			{/* 头部：左侧语言徽标（齿轮） + 右侧复制 / 插入到编辑器 */}
+			<div
+				style={{
+					display: 'flex',
+					alignItems: 'center',
+					justifyContent: 'space-between',
+					height: 34,
+					padding: '0 10px'
+				}}
+			>
+				<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+					<svg
+						width='14'
+						height='14'
+						viewBox='0 0 24 24'
+						fill='none'
+						stroke={CODE_COLORS.iconHover}
+						strokeWidth='2'
+						strokeLinecap='round'
+						strokeLinejoin='round'
+						style={{ display: 'block', flexShrink: 0 }}
+					>
+						<path d='M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z' />
+						<circle cx='12' cy='12' r='3' />
+					</svg>
+					<span style={{ fontFamily: CODE_FONT, fontSize: 12, fontWeight: 600, color: '#c7c9d1' }}>
+						{LANG_LABEL[lang] || (lang ? lang.toUpperCase() : 'CODE')}
+					</span>
+				</div>
+				<div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+					<svg
+						width='15'
+						height='15'
+						viewBox='0 0 24 24'
+						fill='none'
+						stroke='currentColor'
+						strokeWidth='2'
+						strokeLinecap='round'
+						strokeLinejoin='round'
+						style={iconStyle}
+						onMouseEnter={(e) => (e.currentTarget.style.color = CODE_COLORS.iconHover)}
+						onMouseLeave={(e) => (e.currentTarget.style.color = CODE_COLORS.icon)}
+						onClick={onCopy}
+					>
+						<title>复制</title>
+						<rect x='2' y='8' width='14' height='14' rx='2' />
+						<path d='M8 6V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-2' />
+					</svg>
+					<svg
+						width='15'
+						height='15'
+						viewBox='0 0 24 24'
+						fill='none'
+						stroke='currentColor'
+						strokeWidth='2'
+						strokeLinecap='round'
+						strokeLinejoin='round'
+						style={iconStyle}
+						onMouseEnter={(e) => (e.currentTarget.style.color = CODE_COLORS.iconHover)}
+						onMouseLeave={(e) => (e.currentTarget.style.color = CODE_COLORS.icon)}
+						onClick={onInsert}
+					>
+						<title>插入到编辑器</title>
+						<path d='M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v3' />
+						<path d='M2 12h9' />
+						<path d='m8 9 3 3-3 3' />
+					</svg>
+				</div>
+			</div>
+			{/* 主体：交给 Monaco（行号、语法高亮、滚动都由编辑器自己负责） */}
+			<Editor
+				width='100%'
+				height={height}
+				language={MONACO_LANG[lang] || 'plaintext'}
+				theme={AI_CODE_THEME}
+				value={code}
+				editorWillMount={defineAiCodeTheme}
+				options={AI_EDITOR_OPTIONS}
+			/>
+		</div>
+	)
+}
+
 interface AiPanelProps {
 	open: boolean
 	onClose: () => void
@@ -356,8 +666,6 @@ const AiPanel = ({ open, onClose, getCurrentCode, onInsertCode, fileType, isAdva
 			scrollRef.current.scrollTop = scrollRef.current.scrollHeight
 		}
 	}, [messages, streaming])
-
-	const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant')
 
 	const handleSend = useMemoizedFn(async () => {
 		const text = input.trim()
@@ -482,6 +790,22 @@ const AiPanel = ({ open, onClose, getCurrentCode, onInsertCode, fileType, isAdva
 		streamAbortRef.current?.abort()
 	})
 
+	/** 直接插入一段代码（代码块头部图标用，内容已是纯代码） */
+	const insertRaw = useMemoizedFn((code: string) => {
+		if (!code.trim()) {
+			message.warning('未检测到代码内容')
+			return
+		}
+		onInsertCode(code)
+	})
+
+	/** 直接复制一段代码 */
+	const copyRaw = useMemoizedFn(async (code: string) => {
+		if (await copyToClipboard(code)) message.success('已复制')
+		else message.error('复制失败，请手动选中复制')
+	})
+
+	/** 整条消息插入：从回复里抽取围栏代码 */
 	const handleInsert = useMemoizedFn((content: string) => {
 		const code = extractCode(content)
 		if (!code) {
@@ -491,9 +815,10 @@ const AiPanel = ({ open, onClose, getCurrentCode, onInsertCode, fileType, isAdva
 		onInsertCode(code)
 	})
 
-	const handleCopy = useMemoizedFn((content: string) => {
-		const code = extractCode(content)
-		navigator.clipboard.writeText(code).then(() => message.success('已复制'))
+	/** 整条消息复制：从回复里抽取围栏代码 */
+	const handleCopy = useMemoizedFn(async (content: string) => {
+		if (await copyToClipboard(extractCode(content))) message.success('已复制')
+		else message.error('复制失败，请手动选中复制')
 	})
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -600,7 +925,11 @@ const AiPanel = ({ open, onClose, getCurrentCode, onInsertCode, fileType, isAdva
 					</div>
 				)}
 
-				{messages.map((msg, idx) => (
+				{messages.map((msg, idx) => {
+					// 助手回复按「说明文字 / 代码块」分区：代码块用编辑器框渲染，说明文字保持原文
+					const parts = msg.role === 'assistant' ? splitContent(msg.content) : []
+					const hasCode = parts.some((p) => p.type === 'code')
+					return (
 					<div
 						key={idx}
 						style={{
@@ -610,13 +939,14 @@ const AiPanel = ({ open, onClose, getCurrentCode, onInsertCode, fileType, isAdva
 							background: msg.role === 'user' ? '#1677ff' : '#2a2a2a',
 							color: '#e6e6e6',
 							borderRadius: 8,
-							padding: '10px 12px',
+							padding: hasCode ? '10px 10px 10px 12px' : '10px 12px',
 							fontSize: 13,
 							lineHeight: 1.6,
 							wordBreak: 'break-word'
 						}}
 					>
-						{msg.role === 'assistant' && (
+						{/* 纯文本回复才在气泡内保留操作图标（有代码块时图标移到代码框头部）；生成中始终保留停止按钮 */}
+						{msg.role === 'assistant' && (!hasCode || (streaming && idx === messages.length - 1)) && (
 							<div
 								style={{
 									display: 'flex',
@@ -692,22 +1022,48 @@ const AiPanel = ({ open, onClose, getCurrentCode, onInsertCode, fileType, isAdva
 								/>
 								<span style={{ color: '#888', fontSize: 13 }}>代码生成中...</span>
 							</div>
+						) : msg.role === 'assistant' ? (
+							// 助手回复：说明文字 + 代码编辑器框分区渲染
+							<div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+								{parts.map((p, i) =>
+									p.type === 'code' ? (
+										<CodeBlock
+											key={i}
+											lang={p.lang}
+											code={p.value}
+											onCopy={() => copyRaw(p.value)}
+											onInsert={() => insertRaw(p.value)}
+										/>
+									) : (
+										<pre
+											key={i}
+											style={{
+												margin: 0,
+												whiteSpace: 'pre-wrap',
+												wordBreak: 'break-word',
+												fontFamily: 'inherit'
+											}}
+										>
+											{p.value}
+										</pre>
+									)
+								)}
+							</div>
 						) : (
 							<pre
 								style={{
 									margin: 0,
 									whiteSpace: 'pre-wrap',
 									wordBreak: 'break-word',
-									fontFamily: 'inherit',
-									maxHeight: msg.role === 'assistant' ? 300 : 'none',
-									overflowY: msg.role === 'assistant' ? 'auto' : 'visible'
+									fontFamily: 'inherit'
 								}}
 							>
 								{msg.content}
 							</pre>
 						)}
 					</div>
-				))}
+					)
+				})}
 			</div>
 
 			{/* 输入区 */}
