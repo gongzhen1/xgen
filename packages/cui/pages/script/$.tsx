@@ -240,7 +240,7 @@ const Index = () => {
 		}
 	}
 
-	// 发布高级页面：编译当前 TSX 并存 jscode
+	// 发布高级页面：只编译当前 TSX 并存 jscode（预览由工具栏「运行」在新标签打开）
 	const publish = async () => {
 		console.log('[publish] click', { hasData: !!scriptDataRef.current, isAdvanced })
 		if (!scriptDataRef.current) {
@@ -275,9 +275,6 @@ const Index = () => {
 			)
 			console.log('[publish] published OK')
 			message.success('发布成功')
-			// 打开预览页面，用固定窗口名复用已打开的标签页
-			const previewUrl = `/admin/render/${pageName}`
-			window.open(previewUrl, `preview-${pageName}`)
 		} catch (err: any) {
 			// message 静态方法若因兼容问题不显示，console 兜底保证错误可见
 			console.error('[publish] failed:', err)
@@ -315,6 +312,16 @@ const Index = () => {
 	const switchDebugPanel = () => {
 		setShowDebugPanel((prev) => !prev)
 		setDebugPanelH('250px')
+	}
+
+	// 运行：高级页面在新标签直接打开页面；脚本仍打开调试面板
+	const handleRun = () => {
+		if (isAdvanced) {
+			const pageName = searchParams.get('name') || `page_${scriptDataRef.current?.id}`
+			window.open(`/admin/render/${pageName}`, '_blank')
+			return
+		}
+		switchDebugPanel()
 	}
 
 	// 执行脚本
@@ -391,7 +398,7 @@ const Index = () => {
 		setDebugContent(value)
 	}
 
-	const showRunBtn = fileType === 'script'
+	const showRunBtn = fileType === 'script' || isAdvanced
 
 	return (
 		<div className={styles._local}>
@@ -421,9 +428,9 @@ const Index = () => {
 					</div>
 					{showRunBtn && (
 						<div className='item'>
-							<Tooltip title='运行(Ctrl+R)'>
-								<div className='toolbar-item'>
-									<span className='icon-tb-play' onClick={switchDebugPanel}></span>
+							<Tooltip title={isAdvanced ? '运行：在新标签页打开页面' : '运行(Ctrl+R)'}>
+								<div className='toolbar-item' onClick={handleRun}>
+									<span className='icon-tb-play'></span>
 								</div>
 							</Tooltip>
 						</div>

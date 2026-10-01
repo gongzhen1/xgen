@@ -277,20 +277,17 @@
 	.func-select {
 		background-color: transparent;
 		width: 100px;
-
-		.xgen-select-selector {
-			background: #1a1a1a !important;
-			border: none !important;
-			box-shadow: none !important;
-			color: #e6e6e6 !important;
-			min-height: 30px !important;
-			padding: 0 4px !important;
-			height: 30px !important;
-			display: flex !important;
-			align-items: center !important;
-			text-align: center;
-			font-size: 14px;
-		}
+		background: #1a1a1a !important;
+		border: none !important;
+		box-shadow: none !important;
+		color: #e6e6e6 !important;
+		min-height: 30px !important;
+		padding: 0 4px !important;
+		height: 30px !important;
+		display: flex !important;
+		align-items: center !important;
+		text-align: center;
+		font-size: 14px;
 
 		.xgen-select-selection-item {
 			color: #e6e6e6 !important;
@@ -311,13 +308,16 @@
 	.func-select-dropdown {
 		background-color: #4a4a4a !important;
 
+		// antd6 的选中/激活态规则形如
+		// :where(.css-dev-only-xxx).xgen-select-dropdown .xgen-select-item-option-selected:not(...)
+		// 特异性(0,3,0) 高于本文件的两级选择器(0,2,0)，不加 !important 会被盖掉
 		.xgen-select-item {
-			color: #fff;
+			color: #fff !important;
 		}
 
 		.xgen-select-item-option-active,
 		.xgen-select-item-option-selected {
-			background-color: #3a3a3a;
+			background-color: #3a3a3a !important;
 		}
 	}
 }

@@ -155,20 +155,24 @@ function DataTable<T extends Record<string, any>>({
 		// 多选面板
 		if (cfg.type === 'set') {
 			const values: string[] = value && value.type === 'set' ? value.values : []
+			// 选项兼容字符串（值即文本）与 {label,value}
+			const normOptions = (cfg.options || []).map((opt: any) =>
+				typeof opt === 'object' && opt !== null ? { label: opt.label, value: String(opt.value) } : { label: String(opt), value: String(opt) }
+			)
 			return (
 				<div className='dt-filter-panel'>
 					<div className='dt-filter-head'>{is_cn ? `筛选 ${column.title}` : `Filter ${column.title}`}</div>
 					<div className='dt-filter-list'>
-						{(cfg.options || []).map((opt) => (
+						{normOptions.map((opt) => (
 							<Checkbox
-								key={opt}
-								checked={values.includes(opt)}
+								key={opt.value}
+								checked={values.includes(opt.value)}
 								onChange={(e) => {
-									const next = e.target.checked ? [...values, opt] : values.filter((v) => v !== opt)
+									const next = e.target.checked ? [...values, opt.value] : values.filter((v) => v !== opt.value)
 									commitFilter(column.key, next.length ? { type: 'set', values: next } : null)
 								}}
 							>
-								{opt}
+								{opt.label}
 							</Checkbox>
 						))}
 					</div>

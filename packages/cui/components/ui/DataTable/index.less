@@ -172,7 +172,7 @@
 	border-right: 1px solid var(--color_neo_border_card);
 	display: flex;
 	align-items: center;
-	gap: 2px;
+	gap: 4px;
 	white-space: nowrap;
 	flex-shrink: 0; // 防止压缩
 	height: 36px; // 表头高度与参考设计一致（py-2 + 12.5px 文字）
@@ -186,6 +186,8 @@
 }
 
 .headerTitle {
+	flex: 0 1 auto; // 空间不足时标题可收缩，把位置让给排序/筛选按钮
+	min-width: 0; // 允许收缩到内容宽度以下，配合省略号生效
 	overflow: hidden;
 	text-overflow: ellipsis;
 }

@@ -77,9 +77,23 @@ function buildSystemSkill(fileType: string, isAdvanced: boolean): string {
 			'}\n' +
 			'```\n\n' +
 			'【可用工具函数】\n' +
-			'message.success/error/warning/info\n\n' +
+			'message.success/error/warning/info\n' +
+			'loadCdn(url | url[])：按需从 CDN 加载外部 JS/CSS，是使用白名单外第三方库的唯一方式；已全局注入无需 import，返回 Promise\n' +
+			'- 单个：await loadCdn(\'https://cdn.bootcdn.net/ajax/libs/xlsx/0.18.5/xlsx.full.min.js\')，之后直接读全局变量 window.XLSX\n' +
+			'- 多个：await loadCdn([\'https://a/a.css\', \'https://a/a.js\', \'https://b/b.js\'])，CSS 并行、JS 按传入顺序串行，同一 URL 只加载一次；任一失败整体 reject\n' +
+			'- 只支持 UMD / 挂全局变量的库（xlsx、echarts、qrcode、pdf.js 等），ESM-only 的包无法这样加载\n' +
+			'- 必须在 useEffect 或事件回调里加载，完成后把库存进 state 再渲染，禁止在渲染期间调用：\n' +
+			'```tsx\n' +
+			'useEffect(() => {\n' +
+			'  let alive = true\n' +
+			'  loadCdn(\'https://cdn.bootcdn.net/ajax/libs/echarts/5.4.3/echarts.min.js\')\n' +
+			'    .then(() => alive && setEcharts(window.echarts))\n' +
+			'    .catch(() => message.error(\'第三方库加载失败\'))\n' +
+			'  return () => { alive = false }\n' +
+			'}, [])\n' +
+			'```\n\n' +
 			'【编码规范】\n' +
-			'1. 只用白名单内的组件和 hooks，禁止使用 @ant-design/icons、moment、lodash 等任何未注入的库\n' +
+			'1. 只用白名单内的组件和 hooks；确实需要白名单外的第三方库时，只能用 loadCdn 从 CDN 加载（见【可用工具函数】），禁止 import 任何白名单外的模块\n' +
 			'2. 图标用内联 SVG 或文字/emoji 代替，不要用 <Icon /> 组件\n' +
 			'3. 日期时间直接用 new Date()，不要用 moment/dayjs\n' +
 			'4. 组件必须返回单个根元素（用 <div> 或 <Layout> 包裹）\n' +

@@ -17,9 +17,13 @@ export interface TableColumn<T = any> {
 }
 
 // 表头漏斗筛选配置
+export interface FilterSetOption {
+	label: string
+	value: string
+}
 export interface ColumnFilterConfig {
 	type: 'text' | 'set' | 'range'
-	options?: string[] // type=set 时的候选项
+	options?: Array<string | FilterSetOption> // type=set 时的候选项（字符串或 label/value）
 	placeholder?: string
 }
 

@@ -295,7 +295,8 @@ export async function compileTsx(source: string, pageName: string, entryName = D
     Anchor,
     BackTop,
     Statistic,
-    Calendar
+    Calendar,
+    loadCdn
   } = window[${JSON.stringify(CUSTOM_RUNTIME)}] || {};
   const { Title, Paragraph, Text, Link } = Typography || {};
   var __CustomPageEntry;
