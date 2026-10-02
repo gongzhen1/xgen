@@ -809,7 +809,7 @@ function DataTable<T extends Record<string, any>>({
 							total={pagination.total}
 							showSizeChanger={pagination.showSizeChanger !== false}
 							showQuickJumper={pagination.showQuickJumper}
-							pageSizeOptions={[10, 20, 50]}
+							pageSizeOptions={[10, 20, 50, 1000]}
 							showTotal={(t) => (is_cn ? `共 ${t} 条` : `Total ${t}`)}
 							onChange={(page, pageSize) => pagination.onChange?.(page, pageSize)}
 						/>

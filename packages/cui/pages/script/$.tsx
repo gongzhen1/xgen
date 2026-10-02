@@ -181,18 +181,18 @@ const Index = () => {
 		}
 		try {
 			const resp = await fetch(`/api/__yao/form/sys.${fileTypeRef.current}/find/${id}`)
-				const data = await handleResp(resp)
-				scriptDataRef.current = data
-					setIsAdvanced(data?.type === 'advanced')
-					// 高级页面使用原生 React(JS/JSX)，等价于 javascript
-					if (data?.type === 'advanced') setCurrentLanguage('javascript')
-					const content =
-						data?.content ||
-						(data?.type === 'advanced'
-							? ADVANCED_INITIAL_CODE
-							: fileTypeRef.current === 'script'
-							? INITIAL_CODE
-							: '{}')
+			const data = await handleResp(resp)
+			scriptDataRef.current = data
+			setIsAdvanced(data?.type === 'advanced')
+			// 高级页面使用原生 React(JS/JSX)，等价于 javascript
+			if (data?.type === 'advanced') setCurrentLanguage('javascript')
+			const content =
+				data?.content ||
+				(data?.type === 'advanced'
+					? ADVANCED_INITIAL_CODE
+					: fileTypeRef.current === 'script'
+						? INITIAL_CODE
+						: '{}')
 			setScriptContent(content)
 			// 初始化历史
 			const scriptId = searchParams.get('id') || ''
@@ -426,6 +426,15 @@ const Index = () => {
 							</div>
 						</Tooltip>
 					</div>
+					{isAdvanced && (
+						<div className='item'>
+							<Tooltip title='发布：编译当前 React 页面并保存'>
+								<div className={`toolbar-item ${publishing ? 'is-disabled' : ''}`} onClick={() => !publishing && publish()}>
+									<span className='icon-tb-publish'></span>
+								</div>
+							</Tooltip>
+						</div>
+					)}
 					{showRunBtn && (
 						<div className='item'>
 							<Tooltip title={isAdvanced ? '运行：在新标签页打开页面' : '运行(Ctrl+R)'}>
@@ -435,15 +444,7 @@ const Index = () => {
 							</Tooltip>
 						</div>
 					)}
-					{isAdvanced && (
-						<div className='item'>
-							<Tooltip title='发布：编译当前 React 页面并保存'>
-								<div className={`toolbar-item ${publishing ? 'is-disabled' : ''}`} onClick={() => !publishing && publish()}>
-								<span className='icon-tb-publish'></span>
-							</div>
-							</Tooltip>
-						</div>
-					)}
+
 					<div className='item'>
 						<Tooltip title='撤销(Ctrl+Z)'>
 							<div className='toolbar-item' onClick={undo}>
@@ -478,16 +479,6 @@ const Index = () => {
 									<path d='M1 12h3' />
 									<path d='M20 12h3' />
 								</svg>
-							</div>
-						</Tooltip>
-					</div>
-				</div>
-				<div className='middle'></div>
-				<div className='ml-auto'>
-					<div className='item'>
-						<Tooltip title='分屏'>
-							<div className='toolbar-item'>
-								<span className='icon-tb-split-screen'></span>
 							</div>
 						</Tooltip>
 					</div>

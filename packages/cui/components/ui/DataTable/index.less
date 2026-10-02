@@ -290,6 +290,14 @@
 	border-top: 1px solid var(--color_neo_border_card);
 	background: var(--color_neo_bg_header);
 	flex-shrink: 0;
+
+	// 分页器撑满整行。antd 把「每页 N 条」绝对定位在分页行首（left:0），
+	// 而 flex 容器会把分页器压成 shrink-to-fit，导致它落到行首、盖住左侧的
+	// 「共 N 条」和上一页按钮；这里让分页器占满一行，页码仍靠右，两者不再重叠
+	:global(.xgen-pagination) {
+		width: 100%;
+		justify-content: flex-end;
+	}
 }
 
 // 表头筛选弹层（Popover 渲染在 portal，需全局类）
