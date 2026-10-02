@@ -199,6 +199,274 @@ export function hasEsmImport(source: string): boolean {
 	return /(^|\n)\s*import\s+.*from\s+['"]/.test(source)
 }
 
+// ============================== Vue SFC 模式（原生 .vue 源码，编辑器内编译） ==============================
+
+/**
+ * Vue 运行时（SFC 编译产物）的 CDN 基址，是 SFC 的固定底座。
+ * 其余依赖（含 UI 框架）一律由页面用 <!-- @cdn url --> 自行声明。
+ * 注意：必须用原生 script/link 标签按序加载，不能用 loadCdn——
+ * 其 UMD 包装（define/module/exports 置 undefined）会把 vue.global.js 顶层 var 封进函数作用域，
+ * 导致 window.Vue 为空。
+ */
+export const VUE_RUNTIME_VERSION = '3.5.43'
+
+/**
+ * 源码是否为 Vue 单文件组件（跳过前导注释后，以 <template>/<script>/<style> 块开头）。
+ * 需同时跳过 // 、/* *\/ 与 <!-- --> 三类注释，否则页面顶部的 @cdn 声明会让 SFC 失去识别。
+ */
+export function isVueSfc(source: string): boolean {
+	const s = (source || '').replace(/^(\s|\/\/[^\n]*(\n|$)|\/\*[\s\S]*?\*\/|<!--[\s\S]*?-->)+/, '')
+	return /^<(template|script|style)[\s>]/.test(s)
+}
+
+async function loadVueSfcCompiler(): Promise<any> {
+	// 动态加载，避免打进主包（与 babel 同理）。
+	// 显式指定 esm-browser 构建：cjs 版含 consolidate 惰性 require（velocityjs 等模板引擎），
+	// webpack 静态分析会因模块缺失报错；esm-browser 版已剔除且完全自包含。
+	// @ts-ignore 子路径无类型声明
+	const mod: any = await import('@vue/compiler-sfc/dist/compiler-sfc.esm-browser.js')
+	return mod.default || mod
+}
+
+/** 页面级稳定 hash（SFC scopeId 用） */
+function sfcScopeHash(input: string): string {
+	let h = 5381
+	for (let i = 0; i < input.length; i++) h = ((h << 5) + h) ^ input.charCodeAt(i)
+	return (h >>> 0).toString(36)
+}
+
+/** 把 SFC 产物中 from 'vue' 的导入改写为从 window.Vue 解构（运行时 Vue 由 CDN 全局注入） */
+function rewriteVueImports(code: string): string {
+	return code
+		.replace(/import\s+\*\s+as\s+(\w+)\s+from\s+['"]vue['"];?/g, 'const $1 = window.Vue;')
+		.replace(/import\s+(\w+)\s+from\s+['"]vue['"];?/g, 'const $1 = window.Vue;')
+		.replace(/import\s*\{([^}]+)\}\s*from\s+['"]vue['"];?/g, (_m, spec: string) => {
+			const parts = spec
+				.split(',')
+				.map((s: string) => s.trim())
+				.filter(Boolean)
+				.map((item: string) => {
+					const alias = item.match(/^(\w+)\s+as\s+(\w+)$/)
+					return alias ? `${alias[1]}: ${alias[2]}` : item
+				})
+			return `const { ${parts.join(', ')} } = window.Vue;`
+		})
+}
+
+/** 编译前校验：SFC 脚本里只允许从 'vue' 导入，其余依赖必须用 <!-- @cdn url --> 注释引入 */
+function assertNoForeignImports(code: string) {
+	const re = /import\s*(?:[\w*][^'"]*?\s+from\s+)?['"]([^'"]+)['"]/g
+	const foreign: string[] = []
+	let m: RegExpExecArray | null
+	while ((m = re.exec(code))) {
+		if (m[1] !== 'vue') foreign.push(m[1])
+	}
+	if (foreign.length) {
+		throw new Error(
+			`Vue 页面仅允许从 'vue' 导入，发现不支持的依赖：${[...new Set(foreign)].join('、')}。` +
+				`第三方库请在文件顶部用 <!-- @cdn https://... --> 注释引入`
+		)
+	}
+}
+
+/**
+ * 编译 Vue SFC 源码为可注入的 IIFE。
+ * 产物契约与 compileTsx 一致：同步注册 window.__CustomPageRegistry[pageName] = { entry, code }，
+ * entry 是一个 React 包装组件——挂载时按需加载 Vue 运行时（以及页面用 <!-- @cdn --> 声明的全部依赖），
+ * 然后 createApp 挂载编译后的 SFC。SFC 编译（script/template/style）在此处（浏览器内）完成。
+ * 插件注册：IIFE 作用域提供 app（createApp 实例，mount 之前赋值），
+ * 页面在 <script setup> 顶层直接写 app.use(ElementPlus) 即可（ElementPlus 由 @cdn 加载为全局变量）。
+ */
+export async function compileVueSfc(source: string, pageName: string): Promise<CompileResult> {
+	const sfc: any = await loadVueSfcCompiler()
+	const filename = `${pageName}.vue`
+	const scopeHash = sfcScopeHash(pageName)
+	const scopeId = `data-v-${scopeHash}`
+
+	const { descriptor, errors } = sfc.parse(source, { filename })
+	if (errors && errors.length) {
+		throw new Error(`SFC 解析失败：${errors.map((e: any) => e?.message || e).join('；')}`)
+	}
+	const scoped = descriptor.styles.some((s: any) => s.scoped)
+
+	// ---- script（支持 <script> 与 <script setup>，lang=ts 亦可）----
+	let scriptCode = 'const _sfc_main = {};'
+	let bindings: any = undefined
+	if (descriptor.script || descriptor.scriptSetup) {
+		let compiled: any
+		try {
+			compiled = sfc.compileScript(descriptor, { id: scopeHash })
+		} catch (e: any) {
+			throw new Error(`脚本编译失败：${e?.message || e}`)
+		}
+		bindings = compiled.bindings
+		assertNoForeignImports(compiled.content)
+		scriptCode = rewriteVueImports(compiled.content.replace(/export\s+default/, 'const _sfc_main ='))
+	}
+
+	// ---- template → render 函数 ----
+	let renderCode = ''
+	if (descriptor.template) {
+		const tpl = sfc.compileTemplate({
+			source: descriptor.template.content,
+			filename,
+			id: scopeHash,
+			scoped,
+			compilerOptions: { bindingMetadata: bindings, scopeId: scoped ? scopeId : undefined }
+		})
+		if (tpl.errors && tpl.errors.length) {
+			throw new Error(`模板编译失败：${tpl.errors.map((e: any) => e?.message || e).join('；')}`)
+		}
+		renderCode = rewriteVueImports(tpl.code.replace(/export\s+function\s+render/, 'function render'))
+	}
+
+	// ---- style（scoped 走编译期 scopeId 属性选择器）----
+	const cssParts: string[] = []
+	for (const style of descriptor.styles) {
+		const res = sfc.compileStyle({ source: style.content, filename, id: scopeId, scoped: !!style.scoped })
+		if (res.errors && res.errors.length) {
+			throw new Error(`样式编译失败：${res.errors.map((e: any) => e?.message || e).join('；')}`)
+		}
+		cssParts.push(res.code)
+	}
+	const css = cssParts.join('\n')
+
+	// ---- 运行时依赖：全部由页面自己声明，编译器不做框架猜测 ----
+	// vue.global.prod.js 是 SFC 的运行时底座，固定注入；其余（含 UI 框架）都由
+	// <!-- @cdn url --> 声明：JS 按声明顺序串行、CSS 并行，换其他框架无需改编译器
+	const extraCdn: string[] = []
+	const cdnRe = /<!--\s*@cdn\s+(\S+?)\s*-->/g
+	let cm: RegExpExecArray | null
+	while ((cm = cdnRe.exec(source))) extraCdn.push(cm[1])
+
+	const cssUrls: string[] = []
+	const jsUrls: string[] = [`https://unpkg.com/vue@${VUE_RUNTIME_VERSION}/dist/vue.global.prod.js`]
+	for (const u of extraCdn) (/\.css($|\?)/.test(u) ? cssUrls : jsUrls).push(u)
+
+	// ---- 组装组件体（在 __buildSfcComponent 内延迟执行：首次挂载、Vue 就绪后才触碰 window.Vue）----
+	const componentBody = [
+		scriptCode,
+		renderCode,
+		descriptor.template ? '_sfc_main.render = render;' : '',
+		scoped ? `_sfc_main.__scopeId = ${JSON.stringify(scopeId)};` : '',
+		`_sfc_main.__file = ${JSON.stringify(filename)};`,
+		'return _sfc_main;'
+	]
+		.filter(Boolean)
+		.join('\n')
+
+	const code = `(function () {
+  var PAGE_NAME = ${JSON.stringify(pageName)};
+  var CSS_URLS = ${JSON.stringify(cssUrls)};
+  var JS_URLS = ${JSON.stringify(jsUrls)};
+  var SFC_CSS = ${JSON.stringify(css)};
+  // createApp 实例：在 __CustomPageEntry 挂载时赋值（mount 之前），
+  // SFC 的 <script setup> 顶层可直接 app.use(插件) 注册第三方插件
+  var app = null;
+
+  function __buildSfcComponent() {
+${componentBody}
+  }
+
+  // 资源加载：全局 promise 缓存（幂等 + 防并发竞态），失败清除缓存允许重试
+  function __loadAsset(url) {
+    var w = window;
+    var loader = (w.__CuiVueAssetLoader = w.__CuiVueAssetLoader || {});
+    if (loader[url]) return loader[url];
+    loader[url] = new Promise(function (resolve, reject) {
+      var isCss = /\\.css($|\\?)/.test(url);
+      var el = document.createElement(isCss ? 'link' : 'script');
+      if (isCss) { el.rel = 'stylesheet'; el.href = url; } else { el.src = url; }
+      el.onload = resolve;
+      el.onerror = function () { reject(new Error('CDN 资源加载失败：' + url)); };
+      document.head.appendChild(el);
+    });
+    loader[url].catch(function () { delete loader[url]; });
+    return loader[url];
+  }
+
+  function __loadVueRuntime() {
+    var w = window;
+    CSS_URLS.forEach(function (u) { __loadAsset(u).catch(function () {}); });
+    // Monaco 的全局 AMD loader（window.define.amd）会劫持 Element Plus 等 UMD 库走 define 分支，
+    // 导致 window.ElementPlus 永远为空——加载期间临时屏蔽 define，结束后恢复。
+    // __CuiVueDefineCleared 防止两个 Vue 页面并发加载时互相把对方的原始 define 覆盖成 undefined。
+    var cleared = false;
+    if (typeof w.define === 'function' && w.define.amd && !w.__CuiVueDefineCleared) {
+      w.__CuiVueOriginalDefine = w.define;
+      w.define = undefined;
+      w.__CuiVueDefineCleared = true;
+      cleared = true;
+    }
+    var restore = function () {
+      if (cleared) {
+        w.define = w.__CuiVueOriginalDefine;
+        w.__CuiVueDefineCleared = false;
+        cleared = false;
+      }
+    };
+    var chain = Promise.resolve();
+    JS_URLS.forEach(function (u) { chain = chain.then(function () { return __loadAsset(u); }); });
+    return chain.then(function () {
+      restore();
+      if (!w.Vue) throw new Error('Vue 运行时加载失败（window.Vue 为空）');
+    }, function (e) { restore(); throw e; });
+  }
+
+  var __CustomPageEntry = function VueSfcPage(props) {
+    var React = (window[${JSON.stringify(CUSTOM_RUNTIME)}] || {}).React;
+    var containerRef = React.useRef(null);
+    var errState = React.useState('');
+    var err = errState[0];
+    var setErr = errState[1];
+    React.useEffect(function () {
+      app = null;
+      var styleEl = null;
+      var alive = true;
+      __loadVueRuntime()
+        .then(function () {
+          if (!alive || !containerRef.current) return;
+          try {
+            if (SFC_CSS) {
+              styleEl = document.createElement('style');
+              styleEl.setAttribute('data-vue-page', PAGE_NAME);
+              styleEl.textContent = SFC_CSS;
+              document.head.appendChild(styleEl);
+            }
+            app = window.Vue.createApp(__buildSfcComponent(), props || {});
+            app.mount(containerRef.current);
+          } catch (e) {
+            if (alive) setErr(String((e && e.message) || e));
+          }
+        })
+        .catch(function (e) {
+          if (alive) setErr(String((e && e.message) || e));
+        });
+      return function () {
+        alive = false;
+        try { if (app) app.unmount(); } catch (e) {}
+        app = null;
+        if (styleEl) styleEl.remove();
+      };
+    }, []);
+    if (err) {
+      return React.createElement('div', { style: { padding: 24, color: '#f56c6c' } }, 'Vue 页面加载失败：' + err);
+    }
+    return React.createElement('div', { ref: containerRef, style: { width: '100%', minHeight: '200px' } });
+  };
+
+  window[${JSON.stringify(CUSTOM_REGISTRY)}] = window[${JSON.stringify(CUSTOM_REGISTRY)}] || {};
+  window[${JSON.stringify(CUSTOM_REGISTRY)}][PAGE_NAME] = {
+    entry: typeof __CustomPageEntry === 'undefined' ? null : __CustomPageEntry,
+    code: ${JSON.stringify(componentBody)}
+  };
+})();
+//# sourceURL=custompage://${pageName}.vue.js
+`
+
+	return { code, entry: DEFAULT_ENTRY }
+}
+
 /** 产物是否为旧 IIFE 格式（带注册表标记） */
 export function isLegacyIiife(code: string): boolean {
 	return code.includes(CUSTOM_REGISTRY) || code.includes('__CustomPageEntry')
@@ -396,5 +664,52 @@ export async function loadCustomPageComponent(pageName: string, code: string): P
 
 		// 超时兜底：确保 Promise 必然落定
 		setTimeout(() => fail(new Error('编译产物加载超时')), 3000)
+	})
+}
+
+// ============================== 源码格式化（prettier，按需加载） ==============================
+
+/** 格式化模式：react（JS/JSX/TSX）、vue（单文件组件）、json（DSL 页面） */
+export type FormatMode = 'react' | 'vue' | 'json'
+
+/** 取 CJS/ESM 动态导入的模块真身 */
+function unwrapModule(mod: any): any {
+	return mod && mod.default ? mod.default : mod
+}
+
+/**
+ * 格式化高级页面源码。
+ * prettier（含各语言解析器）体积大，全部动态 import，不进主包：
+ * - react：typescript 解析器，同时覆盖 JS / TS / JSX / TSX
+ * - vue：html + postcss + babel + typescript 解析器（template/script/style 三块）
+ * - json：babel 解析器自带的 json 解析
+ */
+export async function formatPageCode(source: string, mode: FormatMode = 'react'): Promise<string> {
+	const prettier = unwrapModule(await import('prettier/standalone'))
+	const plugins: any[] = []
+
+	if (mode === 'vue') {
+		const [html, postcss, babel, typescript] = await Promise.all([
+			import('prettier/parser-html'),
+			import('prettier/parser-postcss'),
+			import('prettier/parser-babel'),
+			import('prettier/parser-typescript')
+		])
+		plugins.push(unwrapModule(html), unwrapModule(postcss), unwrapModule(babel), unwrapModule(typescript))
+	} else if (mode === 'json') {
+		plugins.push(unwrapModule(await import('prettier/parser-babel')))
+	} else {
+		plugins.push(unwrapModule(await import('prettier/parser-typescript')))
+	}
+
+	const parser = mode === 'vue' ? 'vue' : mode === 'json' ? 'json' : 'typescript'
+	return prettier.format(source, {
+		parser,
+		plugins,
+		printWidth: 120,
+		tabWidth: 2,
+		useTabs: false,
+		semi: true,
+		singleQuote: true
 	})
 }

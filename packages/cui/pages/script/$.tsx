@@ -7,7 +7,7 @@ import clsx from 'clsx'
 
 import styles from './index.less'
 
-import { compileTsx, compileTsxEsm, hasEsmImport } from '@/components/custompage/compile'
+import { compileTsx, compileTsxEsm, compileVueSfc, formatPageCode, hasEsmImport, isVueSfc } from '@/components/custompage/compile'
 import AiPanel from './components/AiPanel'
 
 // 华为初始模板
@@ -25,6 +25,15 @@ function run(params) {
 const ADVANCED_INITIAL_CODE = `import { useState, useEffect } from 'react';
 import { Card, Table, Space, Button, message } from 'antd';
 
+// 样式统一用 class 管理：顶层定义一段 CSS 字符串，在根节点用 <style> 渲染出来，组件里用 className 引用
+// （不要内联 style / styled-components；类名加页面前缀避免污染宿主）
+const css = \`
+.mypage { padding: 16px; background: #f5f7fa; min-height: 100%; }
+.mypage-hd { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.mypage-title { margin: 0; font-size: 16px; font-weight: 600; color: #1f2937; }
+.mypage-tip { font-size: 12px; color: #6b7280; }
+\`;
+
 // 导出一个默认组件，发布后即可在 /admin/render/{pagename} 预览
 export default function MyPage({ name }) {
   const [list, setList] = useState([
@@ -33,27 +42,93 @@ export default function MyPage({ name }) {
   ]);
 
   return (
-    <Card title={\`欢迎，\${name || '高级页面'}\`}>
-      <Space style={{ marginBottom: 12 }}>
-        <Button type="primary" onClick={() => message.success('Hello Custom Page!')}>
-          点我
-        </Button>
-      </Space>
-      <Table
-        rowKey="id"
-        dataSource={list}
-        pagination={false}
-        columns={[
-          { title: 'ID', dataIndex: 'id' },
-          { title: '名称', dataIndex: 'name' }
-        ]}
-      />
-    </Card>
+    <div className="mypage">
+      <style>{css}</style>
+      <div className="mypage-hd">
+        <h3 className="mypage-title">欢迎，{name || '高级页面'}</h3>
+        <span className="mypage-tip">样式写在 css 字符串里，用 className 引用</span>
+      </div>
+      <Card>
+        <Space style={{ marginBottom: 12 }}>
+          <Button type="primary" onClick={() => message.success('Hello Custom Page!')}>
+            点我
+          </Button>
+        </Space>
+        <Table
+          rowKey="id"
+          dataSource={list}
+          pagination={false}
+          columns={[
+            { key: 'id', title: 'ID', dataIndex: 'id' },
+            { key: 'name', title: '名称', dataIndex: 'name' }
+          ]}
+        />
+      </Card>
+    </div>
   );
 }
 `
 
+// Vue 单文件组件初始模板（原生 SFC 写法，发布时由框架编译集成）
+// 依赖需自行声明：@cdn 引资源（JS 按序、CSS 并行）；插件在 <script setup> 顶层用注入的 app 注册
+const VUE_INITIAL_CODE = `<!-- Element Plus：依赖全部由页面声明，框架不再自动注入，换其他 UI 框架改这里即可 -->
+<!-- @cdn https://unpkg.com/element-plus@2.5.3/dist/index.css -->
+<!-- @cdn https://unpkg.com/element-plus@2.5.3/dist/index.full.min.js -->
+<!-- @cdn https://unpkg.com/element-plus@2.5.3/dist/locale/zh-cn.min.js -->
+<template>
+  <el-config-provider :locale="zhCn">
+    <div class="vue-page">
+      <h2>{{ title }}</h2>
+      <el-button type="primary" :loading="loading" @click="load">刷新</el-button>
+      <el-table :data="rows" v-loading="loading" border stripe style="width: 100%; margin-top: 12px">
+        <el-table-column prop="id" label="ID" width="80" align="center" />
+        <el-table-column prop="name" label="名称" min-width="180" />
+      </el-table>
+    </div>
+  </el-config-provider>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue'
+
+// app 是框架注入的 createApp 实例（挂载前已就绪），第三方插件在这里注册
+app.use(ElementPlus)
+
+// 中文语言包由 @cdn 加载后挂在全局，交给 el-config-provider
+const zhCn = window.ElementPlusLocaleZhCn
+
+const title = ref('Vue 页面')
+const rows = ref([])
+const loading = ref(false)
+
+async function load() {
+  loading.value = true
+  try {
+    const res = await fetch('/api/__yao/table/sys.page/search?page=1&pagesize=20')
+    const json = await res.json()
+    rows.value = json.data || []
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(load)
+</script>
+
+<style scoped>
+.vue-page {
+  padding: 20px;
+  background: #f5f7fa;
+  min-height: 100%;
+}
+</style>
+`
+
 type DebugAction = 'problem' | 'input' | 'output' | 'log'
+
+/** 高级页面类型：advanced-react = React 组件(JSX)，advanced-vue = Vue 组件(SFC)；advanced 为历史遗留值 */
+const isAdvancedType = (type?: string) => type === 'advanced-react' || type === 'advanced' || type === 'advanced-vue'
+const isVueType = (type?: string) => type === 'advanced-vue'
 
 const editorOptions = {
 	readOnly: false,
@@ -94,8 +169,14 @@ const Index = () => {
 	const [scriptContent, setScriptContent] = useState('')
 	const [debugContent, setDebugContent] = useState('{\n}')
 	const [isAdvanced, setIsAdvanced] = useState(false)
+	const [isVuePage, setIsVuePage] = useState(false)
 	const [publishing, setPublishing] = useState(false)
 	const [aiOpen, setAiOpen] = useState(false)
+
+	// monaco 实例引用与格式化并发锁，供 Shift+Alt+F 格式化使用
+	const editorRef = useRef<any>(null)
+	const monacoRef = useRef<any>(null)
+	const formattingRef = useRef(false)
 
 	// fetch 在 HTTP 4xx/5xx 时不会抛错，需手动检查 resp.ok，
 	// 否则接口报错也会被当作成功并弹出“保存成功/发布成功”。
@@ -183,16 +264,22 @@ const Index = () => {
 			const resp = await fetch(`/api/__yao/form/sys.${fileTypeRef.current}/find/${id}`)
 			const data = await handleResp(resp)
 			scriptDataRef.current = data
-			setIsAdvanced(data?.type === 'advanced')
-			// 高级页面使用原生 React(JS/JSX)，等价于 javascript
-			if (data?.type === 'advanced') setCurrentLanguage('javascript')
+			// 高级页面分 React(advanced-react，源码 .jsx) 与 Vue(advanced-vue，源码 .vue) 两类
+			const advanced = isAdvancedType(data?.type)
+			const vue = isVueType(data?.type) || (searchParams.get('name') || '').endsWith('.vue')
+			setIsAdvanced(advanced)
+			setIsVuePage(vue)
+			// 高级页面：React(JS/JSX) 用 javascript 高亮；Vue SFC 源码用 html 高亮
 			const content =
 				data?.content ||
-				(data?.type === 'advanced'
-					? ADVANCED_INITIAL_CODE
+				(advanced
+					? vue
+						? VUE_INITIAL_CODE
+						: ADVANCED_INITIAL_CODE
 					: fileTypeRef.current === 'script'
 						? INITIAL_CODE
 						: '{}')
+			if (advanced) setCurrentLanguage(vue || isVueSfc(content) ? 'html' : 'javascript')
 			setScriptContent(content)
 			// 初始化历史
 			const scriptId = searchParams.get('id') || ''
@@ -248,7 +335,7 @@ const Index = () => {
 			return
 		}
 		if (!isAdvanced) {
-			message.warning('当前页面不是高级页面（type≠advanced），无需发布')
+			message.warning('当前页面不是高级页面（React/Vue），无需发布')
 			return
 		}
 		if (!scriptContent || !scriptContent.trim()) {
@@ -258,13 +345,18 @@ const Index = () => {
 		setPublishing(true)
 		try {
 			const pageName = searchParams.get('name') || `page_${scriptDataRef.current.id}`
-			const esm = hasEsmImport(scriptContent)
-			console.log('[publish] compiling...', { pageName, esm })
+			// Vue SFC 源码（<template>/<script> 原生写法）优先识别：script setup 里的
+			// import 会误判成 ESM，必须先走 Vue 编译分支（@vue/compiler-sfc 浏览器内编译）
+			const vue = isVueSfc(scriptContent)
+			const esm = !vue && hasEsmImport(scriptContent)
+			console.log('[publish] compiling...', { pageName, vue, esm })
 			// 标准 ESM import 写法走浏览器原生模块（importmap 解析 react/antd/@heroui/react）；
 			// 无 import 的旧代码保持 IIFE 兼容模式
-			const code = esm
-				? await compileTsxEsm(scriptContent, pageName)
-				: (await compileTsx(scriptContent, pageName)).code
+			const code = vue
+				? (await compileVueSfc(scriptContent, pageName)).code
+				: esm
+					? await compileTsxEsm(scriptContent, pageName)
+					: (await compileTsx(scriptContent, pageName)).code
 			console.log('[publish] compiled, bytes:', code.length)
 			await handleResp(
 				await fetch('/api/custompage/publish', {
@@ -389,6 +481,8 @@ const Index = () => {
 	const onScriptChange = (value: string) => {
 		setScriptContent(value)
 		pushHistory(value)
+		// 高级页面按内容实时切换语法高亮（Vue SFC ↔ React JSX）
+		if (isAdvanced) setCurrentLanguage(isVueSfc(value) ? 'html' : 'javascript')
 	}
 
 	const onDebugChange = (value: string) => {
@@ -396,6 +490,45 @@ const Index = () => {
 			inputParamsRef.current = value
 		}
 		setDebugContent(value)
+	}
+
+	// 代码格式化：按页面类型选 prettier 解析器（Vue SFC / React TSX / JSON）。
+	// 用 executeEdits 写入，monaco 会触发 onChange → 记录历史，可 Ctrl+Z 撤销。
+	const formatDocument = useMemoizedFn(async () => {
+		const editor = editorRef.current
+		if (!editor || formattingRef.current) return
+		const value: string = editor.getValue()
+		if (!value || !value.trim()) return
+		const model = editor.getModel()
+		if (!model) return
+		const mode = isVuePage || isVueSfc(value) ? 'vue' : currentLanguage === 'json' ? 'json' : 'react'
+		formattingRef.current = true
+		try {
+			const formatted = await formatPageCode(value, mode)
+			if (formatted !== value) {
+				editor.pushUndoStop()
+				editor.executeEdits('custompage.format', [
+					{ range: model.getFullModelRange(), text: formatted, forceMoveMarkers: true }
+				])
+				editor.pushUndoStop()
+			}
+		} catch (err: any) {
+			message.error(`格式化失败: ${err?.message || JSON.stringify(err)}`)
+		} finally {
+			formattingRef.current = false
+		}
+	})
+
+	// monaco 挂载后保存实例，并注册 Shift+Alt+F 格式化快捷键
+	const handleEditorDidMount = (editor: any, monaco: any) => {
+		editorRef.current = editor
+		monacoRef.current = monaco
+		editor.addAction({
+			id: 'custompage.format',
+			label: '格式化代码',
+			keybindings: [monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KeyF],
+			run: () => formatDocument()
+		})
 	}
 
 	const showRunBtn = fileType === 'script' || isAdvanced
@@ -428,7 +561,7 @@ const Index = () => {
 					</div>
 					{isAdvanced && (
 						<div className='item'>
-							<Tooltip title='发布：编译当前 React 页面并保存'>
+							<Tooltip title='发布：编译当前页面（React/Vue）并保存'>
 								<div className={`toolbar-item ${publishing ? 'is-disabled' : ''}`} onClick={() => !publishing && publish()}>
 									<span className='icon-tb-publish'></span>
 								</div>
@@ -497,6 +630,7 @@ const Index = () => {
 								value={scriptContent}
 								onChange={onScriptChange}
 								options={editorOptions}
+								editorDidMount={handleEditorDidMount}
 							/>
 						</div>
 						{/* 可折叠调试面板 */}
@@ -601,6 +735,7 @@ const Index = () => {
 				}}
 				fileType={fileType}
 				isAdvanced={isAdvanced}
+				isVue={isVuePage}
 			/>
 		</div>
 	)

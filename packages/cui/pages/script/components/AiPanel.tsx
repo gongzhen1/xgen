@@ -6,7 +6,29 @@ import { useMemoizedFn } from 'ahooks'
 const { TextArea } = Input
 
 /** AI 系统技能规范（根据编辑器类型动态生成） */
-function buildSystemSkill(fileType: string, isAdvanced: boolean): string {
+function buildSystemSkill(fileType: string, isAdvanced: boolean, isVue = false): string {
+	// 模式一（Vue）：高级页面 - Vue 单文件组件（原生 SFC 写法，编辑器内编译）
+	if (fileType === 'page' && isAdvanced && isVue) {
+		return (
+			'你是 YAO 低代码平台「高级页面」开发助手（Vue 模式）。当前页面是 Vue 单文件组件，你需要输出原生 Vue 3 SFC 代码。\n\n' +
+			'【输出格式】\n' +
+			'只输出代码，用 ```vue 围栏包裹，不要任何解释文字。代码必须包含 <template> 与 <script setup>，样式写在 <style scoped> 里。\n\n' +
+			'【运行时环境】\n' +
+			'- Vue 3 全局构建：源码由框架在浏览器内用 @vue/compiler-sfc 编译，运行时 window.Vue 自动注入\n' +
+			"- 只允许从 'vue' 导入（import { ref, reactive, computed, watch, onMounted } from 'vue'），禁止 import 其他任何模块\n" +
+			'- 第三方库（含 UI 框架）不会自动注入，必须在文件顶部用 <!-- @cdn url --> 声明：JS 按声明顺序串行、CSS 并行；加载完成的库以全局变量形式存在（如 ElementPlus），可直接按变量名引用\n' +
+			'- 框架已注入 createApp 实例 app（挂载之前就绪），需要在 setup 顶层调用 app.use(插件) 注册，例如 app.use(ElementPlus)\n' +
+			'- 例如使用 Element Plus：文件顶部三行 @cdn（index.css、index.full.min.js、locale/zh-cn.min.js），<script setup> 顶层写 app.use(ElementPlus)；中文用 <el-config-provider :locale="window.ElementPlusLocaleZhCn"> 包裹根节点。ElMessage/ElMessageBox 走全局 ElementPlus.ElMessage\n' +
+			'- 换 Ant Design Vue / Naive UI 等其他框架时同理，只改 @cdn 声明与 app.use 那几行，无需改框架代码\n' +
+			'- 数据请求用浏览器 fetch（后端接口 /api/__yao/...）；render 路由的 query 参数会作为 props 传入组件\n\n' +
+			'【编码规范】\n' +
+			'1. 一律使用 <script setup> 语法；样式用 <style scoped>\n' +
+			'2. 日期时间用 new Date()，禁止 moment/dayjs\n' +
+			'3. 不要写 render 函数、不要写 JSX\n' +
+			'4. 主色 #1677ff，背景 #f5f7fa，文字 #1f2937，边框 #e5e7eb\n'
+		)
+	}
+
 	// 模式一：高级页面（React JSX 动态编译；默认 antd 全局注入，用户点名 HeroUI 时走 ESM import）
 	if (fileType === 'page' && isAdvanced) {
 		return (
@@ -17,11 +39,29 @@ function buildSystemSkill(fileType: string, isAdvanced: boolean): string {
 			'【输出格式（两种方案共同）】\n' +
 			'只输出代码，用 ```tsx 围栏包裹，不要任何解释文字。代码必须是：export default function Page() { return (...) }\n' +
 			'允许使用 TypeScript 类型语法（编译器会自动剥离），但禁止 import 除 react/react-dom/antd/@heroui/react 之外的任何模块\n\n' +
+			'【样式写法（两种方案共同，必须遵守）】\n' +
+			'- 静态样式一律写成 class，不要用内联 style；只有随数据变化的动态值才内联\n' +
+			'- 在组件模块顶层定义 const css = `...`，在组件根节点用 <style>{css}</style> 渲染出来，再通过 className 引用\n' +
+			'- 类名加页面前缀避免污染宿主（如 .mypage-hd），用 kebab-case，层级尽量扁平；禁止 import css 文件、禁止 styled-components/emotion、禁止 Tailwind 工具类（flex/gap-4/p-4）\n' +
+			'- 示例：\n' +
+			'```tsx\n' +
+			'const css = `\n' +
+			'.mypage { padding: 16px; background: #f5f7fa; }\n' +
+			'.mypage-hd { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }\n' +
+			'`\n' +
+			'export default function Page() {\n' +
+			'  return (\n' +
+			'    <div className="mypage">\n' +
+			'      <style>{css}</style>\n' +
+			'      <div className="mypage-hd">标题</div>\n' +
+			'    </div>\n' +
+			'  )\n' +
+			'}\n' +
+			'```\n\n' +
 			'========== 规则 A：antd 方案（默认） ==========\n' +
 			'【运行时环境】\n' +
 			'- 无 import，无外部依赖，所有组件和 hooks 由运行时全局注入\n' +
-			'- React 19 + antd 6，共享宿主实例\n' +
-			'- 样式尽量不要用内联style可以把style抽成class css块，单独放到一块管理，做好缩减和格式化、不要用 styled-components/emotion\n\n' +
+			'- React 19 + antd 6，共享宿主实例\n\n' +
 			'【可用 hooks】\n' +
 			'useState, useEffect, useRef, useMemo, useCallback, useReducer\n\n' +
 			'【可用组件（严格白名单，超出此列表的组件会报 is not defined）】\n' +
@@ -50,6 +90,7 @@ function buildSystemSkill(fileType: string, isAdvanced: boolean): string {
 			'- 以下 props 声明了但未实现，禁止使用：bordered、showHeader、scroll、onRow、column.fixed、column.resizable、column.ellipsis（单元格默认就截断省略号）、pagination.showTotal、filter.type="dateRange"\n' +
 			'【DataTable 最小示例骨架】\n' +
 			'```tsx\n' +
+			'const css = `.mypage { padding: 16px; }`\n' +
 			'export default function Page() {\n' +
 			'  const [rows, setRows] = useState([{ id: 1, name: \'示例\', status: \'待处理\', qty: 3 }])\n' +
 			'  const [selectedKeys, setSelectedKeys] = useState([])\n' +
@@ -59,7 +100,8 @@ function buildSystemSkill(fileType: string, isAdvanced: boolean): string {
 			'    { key: \'qty\', title: \'数量\', dataIndex: \'qty\', width: 100, align: \'right\', editable: { type: \'number\' } }\n' +
 			'  ]\n' +
 			'  return (\n' +
-			'    <div style={{ padding: 16 }}>\n' +
+			'    <div className="mypage">\n' +
+			'      <style>{css}</style>\n' +
 			'      <DataTable\n' +
 			'        data={rows}\n' +
 			'        columns={columns}\n' +
@@ -127,7 +169,7 @@ function buildSystemSkill(fileType: string, isAdvanced: boolean): string {
 			'- Tabs：<Tabs><Tabs.List><Tabs.Tab id="a">标签A</Tabs.Tab></Tabs.List><Tabs.Panel id="a">内容A</Tabs.Panel></Tabs>\n' +
 			'- 同类还有 Accordion.Item、Breadcrumbs.Item、Menu.Item、ListBox.Item、TagGroup.List 等\n\n' +
 			'【HeroUI 编码规范】\n' +
-			'1. 布局与间距必须用内联 style（如 style={{ display:\'flex\', gap:12, padding:16 }}）；平台未集成 Tailwind 工具类，禁止使用 flex/gap-4/p-4 等 class 名\n' +
+			'1. 布局与间距用 className + <style>{css}</style> 写（见【样式写法】）；平台未集成 Tailwind 工具类，禁止使用 flex/gap-4/p-4 等 class 名\n' +
 			'2. 颜色与变体用组件自带 props：Button 用 variant="primary|outline|danger|ghost"；Chip/Tag/Badge 用 color="default|primary|accent|success|warning|danger|tertiary"\n' +
 			'3. 图标用内联 SVG，禁止任何图标库；日期用 new Date()；禁止 lodash/moment/dayjs\n' +
 			'4. 只 export default 一个页面组件；组件必须返回单个根元素；hooks 只在组件函数体内调用\n\n' +
@@ -135,15 +177,20 @@ function buildSystemSkill(fileType: string, isAdvanced: boolean): string {
 			'```tsx\n' +
 			'import { useState } from \'react\'\n' +
 			'import { Button, Card, TextField, Input, Chip } from \'@heroui/react\'\n\n' +
+			'const css = `\n' +
+			'.hpage { padding: 24px; display: flex; flex-direction: column; gap: 16px; }\n' +
+			'.hpage-row { display: flex; gap: 12px; align-items: center; }\n' +
+			'`\n\n' +
 			'export default function Page() {\n' +
 			'  const [name, setName] = useState(\'\')\n' +
 			'  return (\n' +
-			'    <div style={{ padding: 24, display: \'flex\', flexDirection: \'column\', gap: 16 }}>\n' +
+			'    <div className="hpage">\n' +
+			'      <style>{css}</style>\n' +
 			'      <Card>\n' +
 			'        <Card.Header>\n' +
 			'          <Card.Title>示例</Card.Title>\n' +
 			'        </Card.Header>\n' +
-			'        <Card.Content style={{ display: \'flex\', gap: 12, alignItems: \'center\' }}>\n' +
+			'        <Card.Content className="hpage-row">\n' +
 			'          <TextField value={name} onChange={setName}>\n' +
 			'            <Input placeholder=\'请输入名称\' />\n' +
 			'          </TextField>\n' +
@@ -647,9 +694,11 @@ interface AiPanelProps {
 	fileType: string
 	/** 是否为高级页面（React JSX） */
 	isAdvanced: boolean
+	/** 高级页面是否为 Vue 单文件组件（advanced-vue），false 则为 React */
+	isVue?: boolean
 }
 
-const AiPanel = ({ open, onClose, getCurrentCode, onInsertCode, fileType, isAdvanced }: AiPanelProps) => {
+const AiPanel = ({ open, onClose, getCurrentCode, onInsertCode, fileType, isAdvanced, isVue = false }: AiPanelProps) => {
 	const [config, setConfig] = useState<AiConfig>(() => loadConfig())
 	const [configOpen, setConfigOpen] = useState(false)
 	const [input, setInput] = useState('')
@@ -700,7 +749,7 @@ const AiPanel = ({ open, onClose, getCurrentCode, onInsertCode, fileType, isAdva
 
 		// 构建请求消息：system 技能 + 可选注入当前代码
 		const requestMessages: { role: string; content: string }[] = [
-			{ role: 'system', content: buildSystemSkill(fileType, isAdvanced) }
+			{ role: 'system', content: buildSystemSkill(fileType, isAdvanced, isVue) }
 		]
 		if (injectCode) {
 			const code = getCurrentCode()

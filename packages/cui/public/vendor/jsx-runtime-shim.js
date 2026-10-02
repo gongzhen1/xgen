@@ -37,7 +37,16 @@ function jsx(type, config, maybeKey) {
 	}
 	// key 必须合进 props 对象——createElement(type, props, ...children) 的第三参起是 children，
 	// 若写成 createElement(type, { key }, rest)，rest 会被误当作一个 child 导致渲染崩溃
-	return key !== null ? React.createElement(type, { ...rest, key }) : React.createElement(type, rest)
+	const props = key !== null ? { ...rest, key } : rest
+	// 多个静态子节点会被 babel 编成 props.children 数组（jsxs）。若整体当作一个 child 传入，
+	// React 无法把这些元素标记为已校验，协调时会误报 "Each child in a list should have a unique key"。
+	// 必须按位置参数展开，与官方 jsx-runtime 的校验行为一致。
+	const children = props.children
+	if (Array.isArray(children)) {
+		delete props.children
+		return React.createElement(type, props, ...children)
+	}
+	return React.createElement(type, props)
 }
 
 export { jsx, jsx as jsxs, jsx as jsxDEV }

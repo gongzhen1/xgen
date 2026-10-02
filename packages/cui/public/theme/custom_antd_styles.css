@@ -66,7 +66,7 @@ a {
 .xgen-select {
   border: none !important;
 }
-.xgen-select {
+.xgen-select:not(.xgen-pagination-options-size-changer) {
   padding-block: 8px !important;
   min-height: 38px !important;
 }
@@ -180,11 +180,18 @@ a {
 .xgen-modal-mask {
   backdrop-filter: blur(24px);
 }
-.xgen-modal-container {
+.xgen-modal-container:has(.form_content_container, .xgen-modal-confirm-body-wrapper) {
   padding: 0 !important;
 }
 .xgen-modal-confirm .xgen-modal-body {
   padding: 32px 32px 24px !important;
+}
+.xgen-modal-root .xgen-modal-css-var {
+  --xgen-modal-header-padding: 16px 20px;
+  --xgen-modal-header-border-bottom: 1px solid var(--color_border_soft);
+  --xgen-modal-body-padding: 24px;
+  --xgen-modal-footer-padding: 12px 20px;
+  --xgen-modal-footer-border-top: 1px solid var(--color_border_soft);
 }
 .custom_modal .xgen-modal-title {
   color: var(--color_text);
@@ -262,6 +269,11 @@ a {
   position: absolute;
   left: 0;
   margin: 0;
+}
+.xgen-pagination .xgen-pagination-options .xgen-select {
+  height: 28.5px;
+  min-height: 28.5px;
+  align-items: center;
 }
 .xgen-pagination .xgen-pagination-total-text {
   margin-right: 15px;
