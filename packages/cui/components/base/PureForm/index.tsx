@@ -104,7 +104,9 @@ const Index = (props: IPropsPureForm) => {
 		namespace,
 		primary,
 		type,
-		data,
+		// 合并 initialValues：让字段 props 里的 {{字段}} 模板在首屏就能取到默认值
+		// （如「分组」选项按默认「存储连接器」级联），与表单实际初始值保持一致
+		data: { ...initialValues, ...data },
 		sections,
 		showSectionDivideLine
 	}

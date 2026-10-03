@@ -9,6 +9,7 @@ import styles from './index.less'
 
 import { compileTsx, compileTsxEsm, compileVueSfc, formatPageCode, hasEsmImport, isVueSfc } from '@/components/custompage/compile'
 import AiPanel from './components/AiPanel'
+import LibraryPanel from './components/LibraryPanel'
 
 // 华为初始模板
 const INITIAL_CODE = `/*
@@ -25,6 +26,13 @@ function run(params) {
 const ADVANCED_INITIAL_CODE = `import { useState, useEffect } from 'react';
 import { Card, Table, Space, Button, message } from 'antd';
 
+// 引入第三方库（含 UI 框架）有两种方式，优先用第一种：
+// 1) 工具栏「设置」(Alt+Shift+P) 里勾选「组件组」：一个组件组 = 一套配套文件，渲染前按顺序自动加载
+//    （CSS 并行、JS 串行），加载完以全局变量存在，代码里直接按变量名引用（如 window.XLSX）；
+//    改库/调顺序都不用重新发布，页面里不写任何加载代码；
+// 2) 组件组里没有的库，在文件顶部按行声明 @cdn（单独一行写：// @cdn 资源地址，可写多行，
+//    按扩展名自动区分 CSS/JS，CSS 并行、JS 按声明顺序串行），框架会在渲染本组件前加载完；
+//    也可以运行时按需加载：在 useEffect 里 await loadCdn(url | url[])，加载完存进 state 再渲染。
 // 样式统一用 class 管理：顶层定义一段 CSS 字符串，在根节点用 <style> 渲染出来，组件里用 className 引用
 // （不要内联 style / styled-components；类名加页面前缀避免污染宿主）
 const css = \`
@@ -70,11 +78,14 @@ export default function MyPage({ name }) {
 `
 
 // Vue 单文件组件初始模板（原生 SFC 写法，发布时由框架编译集成）
-// 依赖需自行声明：@cdn 引资源（JS 按序、CSS 并行）；插件在 <script setup> 顶层用注入的 app 注册
-const VUE_INITIAL_CODE = `<!-- Element Plus：依赖全部由页面声明，框架不再自动注入，换其他 UI 框架改这里即可 -->
-<!-- @cdn https://unpkg.com/element-plus@2.5.3/dist/index.css -->
-<!-- @cdn https://unpkg.com/element-plus@2.5.3/dist/index.full.min.js -->
-<!-- @cdn https://unpkg.com/element-plus@2.5.3/dist/locale/zh-cn.min.js -->
+// 引入第三方库（含 UI 框架）有两种方式，优先用第一种：
+// 1) 工具栏「设置」(Alt+Shift+P) 里勾选「组件组」：一个组件组 = 一套配套文件（清单 json 会被自动展开），
+//    渲染前按顺序自动加载（CSS 并行、JS 串行），加载完以全局变量存在，代码里直接按变量名引用（如 window.ElementPlus）；
+//    改库/调顺序都不用重新发布，页面里不写任何加载代码；
+// 2) 组件组里没有的库，在文件顶部用 <!-- @cdn url --> 注释声明（按扩展名自动区分 CSS/JS，JS 按声明顺序串行）。
+// 第三方插件（如 Element Plus）必须在 <script setup> 顶层用框架注入的 app 注册：app.use(ElementPlus)
+const VUE_INITIAL_CODE = `<!-- 引入第三方库优先用工具栏「设置」(Alt+Shift+P) 勾选「组件组」：渲染前按序自动加载，这里不需要写加载代码；
+     组件组里没有的库，才在文件顶部用 @cdn 注释声明（@cdn url, JS 按序、CSS 并行） -->
 <template>
   <el-config-provider :locale="zhCn">
     <div class="vue-page">
@@ -94,7 +105,7 @@ import { ref, onMounted } from 'vue'
 // app 是框架注入的 createApp 实例（挂载前已就绪），第三方插件在这里注册
 app.use(ElementPlus)
 
-// 中文语言包由 @cdn 加载后挂在全局，交给 el-config-provider
+// 中文语言包来自 ElementPlus 组件组内的 element-plus.zh-cn.js，以全局变量挂出，取出后交给 el-config-provider
 const zhCn = window.ElementPlusLocaleZhCn
 
 const title = ref('Vue 页面')
@@ -172,6 +183,9 @@ const Index = () => {
 	const [isVuePage, setIsVuePage] = useState(false)
 	const [publishing, setPublishing] = useState(false)
 	const [aiOpen, setAiOpen] = useState(false)
+	const [libOpen, setLibOpen] = useState(false)
+	// 已加载页面记录的主键/名称：URL 可能缺少 name 参数，用它兜底避免按 page_<id> 误查
+	const [pageMeta, setPageMeta] = useState<{ id?: any; name?: string }>({})
 
 	// monaco 实例引用与格式化并发锁，供 Shift+Alt+F 格式化使用
 	const editorRef = useRef<any>(null)
@@ -210,6 +224,11 @@ const Index = () => {
 	const historyRef = useRef<{ stack: string[]; index: number }>({ stack: [], index: -1 })
 	const historyKeyRef = useRef('')
 	const skipHistoryRef = useRef(false)
+
+	// 页面真实标识：优先已加载记录的名称（URL 可能没带 name），再兜底 URL 参数与 page_<id>。
+	// 发布、运行、组件库面板统一使用该值，避免出现「保存成功但查不到已选/渲染 404」。
+	const pageId = pageMeta.id ?? scriptDataRef.current?.id
+	const pageName = pageMeta.name || searchParams.get('name') || (pageId ? `page_${pageId}` : '')
 
 	const pushHistory = useMemoizedFn((content: string) => {
 		if (skipHistoryRef.current) {
@@ -264,6 +283,7 @@ const Index = () => {
 			const resp = await fetch(`/api/__yao/form/sys.${fileTypeRef.current}/find/${id}`)
 			const data = await handleResp(resp)
 			scriptDataRef.current = data
+			setPageMeta({ id: data?.id, name: data?.name })
 			// 高级页面分 React(advanced-react，源码 .jsx) 与 Vue(advanced-vue，源码 .vue) 两类
 			const advanced = isAdvancedType(data?.type)
 			const vue = isVueType(data?.type) || (searchParams.get('name') || '').endsWith('.vue')
@@ -313,12 +333,18 @@ const Index = () => {
 		if (!scriptDataRef.current) return
 		scriptDataRef.current.content = scriptContent
 		setFunctionNames(extractFunctionNames(scriptContent))
+		// 内存中的记录是打开页面时的快照：libraries 由「设置」弹窗写入、jscode/entry 由发布写入，
+		// 整条回传会用旧快照覆盖掉这几个字段（表现为「设置里保存成功，刷新又变回去了」），故保存时剔除
+		const payload: Record<string, any> = { ...scriptDataRef.current, content: scriptContent }
+		delete payload.libraries
+		delete payload.jscode
+		delete payload.entry
 		try {
 			await handleResp(
 				await fetch(`/api/__yao/form/sys.${fileTypeRef.current}/save`, {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify(scriptDataRef.current)
+					body: JSON.stringify(payload)
 				})
 			)
 			message.success('保存成功')
@@ -344,7 +370,6 @@ const Index = () => {
 		}
 		setPublishing(true)
 		try {
-			const pageName = searchParams.get('name') || `page_${scriptDataRef.current.id}`
 			// Vue SFC 源码（<template>/<script> 原生写法）优先识别：script setup 里的
 			// import 会误判成 ESM，必须先走 Vue 编译分支（@vue/compiler-sfc 浏览器内编译）
 			const vue = isVueSfc(scriptContent)
@@ -409,7 +434,6 @@ const Index = () => {
 	// 运行：高级页面在新标签直接打开页面；脚本仍打开调试面板
 	const handleRun = () => {
 		if (isAdvanced) {
-			const pageName = searchParams.get('name') || `page_${scriptDataRef.current?.id}`
 			window.open(`/admin/render/${pageName}`, '_blank')
 			return
 		}
@@ -552,13 +576,15 @@ const Index = () => {
 							</div>
 						</Tooltip>
 					</div>
-					<div className='item'>
-						<Tooltip title='属性(Alt+Shift+P)'>
-							<div className='toolbar-item'>
-								<span className='icon-tb-edit'></span>
-							</div>
-						</Tooltip>
-					</div>
+					{isAdvanced && (
+						<div className='item'>
+							<Tooltip title='设置(Alt+Shift+P)：配置页面组件库'>
+								<div className='toolbar-item' onClick={() => setLibOpen(true)}>
+									<span className='icon-tb-edit'></span>
+								</div>
+							</Tooltip>
+						</div>
+					)}
 					{isAdvanced && (
 						<div className='item'>
 							<Tooltip title='发布：编译当前页面（React/Vue）并保存'>
@@ -737,8 +763,9 @@ const Index = () => {
 				isAdvanced={isAdvanced}
 				isVue={isVuePage}
 			/>
+			<LibraryPanel open={libOpen} pageName={pageName} pageId={pageId} onClose={() => setLibOpen(false)} />
 		</div>
-	)
-}
+		)
+	}
 
 export default new window.$app.Handle(Index).by(window.$app.memo).get()

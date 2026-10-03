@@ -1,11 +1,12 @@
 import { Button, Col, Form, Row, Tooltip } from 'antd'
 import clsx from 'clsx'
 import { toJS } from 'mobx'
-import { useLayoutEffect, useState } from 'react'
+import { useLayoutEffect, useMemo, useState } from 'react'
 import { When } from 'react-if'
 
 import { X } from '@/components'
 import { useMounted } from '@/hooks'
+import { getTemplateValue } from '@/utils'
 import { Icon } from '@/widgets'
 import { getLocale, useSearchParams } from '@umijs/max'
 
@@ -25,6 +26,8 @@ const Index = (props: IPropsFilter) => {
 	const [form] = useForm()
 	const [params] = useSearchParams()
 	const [query, setQuery] = useState(null)
+	// 表单当前值：用于解析筛选字段 props 里的 {{字段}} 模板（如分组选项按存储连接器级联）
+	const [values, setValues] = useState<Record<string, any>>({})
 	const is_cn = locale === 'zh-CN'
 	const { getFieldsValue, resetFields, setFieldsValue, submit } = form
 	const { display_more, opacity_more, visible_more, setVisibleMore } = useVisibleMore()
@@ -41,9 +44,37 @@ const Index = (props: IPropsFilter) => {
 		if (!Object.keys(search_params).length) return
 
 		setFieldsValue(search_params)
+		setValues(search_params)
 	}, [parent, params])
 
 	if (!columns.length && !actions?.length) return null
+
+	// 筛选项的 bind 形如 where.uploader.eq，而模板 {{where.uploader.eq}} 是按路径查找的：
+	// 把扁平的表单值展开出嵌套结构（同时保留原始键），使筛选项之间可以互相引用实现级联
+	const template_values = useMemo(() => {
+		const res: Record<string, any> = { ...values }
+
+		Object.keys(values).forEach((key) => {
+			if (key.indexOf('.') === -1) return
+
+			const parts = key.split('.')
+			let current = res
+
+			parts.forEach((part, index) => {
+				if (index === parts.length - 1) {
+					current[part] = values[key]
+
+					return
+				}
+
+				if (typeof current[part] !== 'object' || current[part] === null) current[part] = {}
+
+				current = current[part]
+			})
+		})
+
+		return res
+	}, [values])
 
 	const onReset = () => {
 		resetFields()
@@ -64,7 +95,10 @@ const Index = (props: IPropsFilter) => {
 			name={form_name}
 			onFinish={onFinish}
 			onReset={onReset}
-			onValuesChange={(_, values) => setQuery(values)}
+			onValuesChange={(_, values) => {
+				setQuery(values)
+				setValues(values)
+			}}
 		>
 			<Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
 				{base.map((item: any, index: number) => (
@@ -73,7 +107,7 @@ const Index = (props: IPropsFilter) => {
 							type='edit'
 							name={item.edit?.type || 'Input'}
 							props={{
-								...toJS(item.edit?.props),
+								...getTemplateValue(toJS(item.edit?.props), template_values),
 								__bind: item.bind,
 								__name: item.name
 							}}
@@ -135,7 +169,7 @@ const Index = (props: IPropsFilter) => {
 									type='edit'
 									name={item.edit?.type}
 									props={{
-										...toJS(item.edit?.props),
+										...getTemplateValue(toJS(item.edit?.props), template_values),
 										__bind: item.bind,
 										__name: item.name
 									}}

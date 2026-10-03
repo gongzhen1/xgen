@@ -96,6 +96,8 @@ export function ensureImportMap(): void {
 /**
  * ESM 编译：只转 JSX（automatic runtime → react/jsx-runtime，用户无需 import React），
  * 完整保留 import/export。用户代码按标准 ESM 书写，裸模块由 importmap 解析。
+ * 源码顶部的 @cdn 声明会转成模块顶层的 await：导入方 await import() 期间即完成加载，
+ * 因此外部依赖在组件求值前就绪（与 Vue SFC 的 @cdn 语义一致）。
  */
 export async function compileTsxEsm(source: string, pageName: string): Promise<string> {
 	const Babel = await loadBabel()
@@ -111,7 +113,17 @@ export async function compileTsxEsm(source: string, pageName: string): Promise<s
 		comments: false,
 		compact: false
 	})
-	return `${transformed.code || ''}\n//# sourceURL=custompage://${pageName}.jsx\n`
+
+	// @cdn 声明：模块顶层 await 加载（CSS 并行、JS 按声明顺序串行），失败会让 import 直接 reject
+	const cdnUrls = extractCdnUrls(source)
+	const preload = cdnUrls.length
+		? '// @cdn 声明：模块求值前按序加载外部资源（CSS 并行、JS 串行）\n' +
+			'await (window.__CustomPageRuntime || {}).loadCdn(' +
+			JSON.stringify(cdnUrls) +
+			');\n\n'
+		: ''
+
+	return `${preload}${transformed.code || ''}\n//# sourceURL=custompage://${pageName}.jsx\n`
 }
 
 /**
@@ -202,13 +214,24 @@ export function hasEsmImport(source: string): boolean {
 // ============================== Vue SFC 模式（原生 .vue 源码，编辑器内编译） ==============================
 
 /**
- * Vue 运行时（SFC 编译产物）的 CDN 基址，是 SFC 的固定底座。
+ * Vue 运行时（SFC 编译产物）的固定底座，随 CUI 一起本地部署（public/vendor/vue.global.prod.js，
+ * 版本 3.5.43，UMD 全局构建），不再依赖 unpkg 等外部 CDN。
  * 其余依赖（含 UI 框架）一律由页面用 <!-- @cdn url --> 自行声明。
  * 注意：必须用原生 script/link 标签按序加载，不能用 loadCdn——
  * 其 UMD 包装（define/module/exports 置 undefined）会把 vue.global.js 顶层 var 封进函数作用域，
  * 导致 window.Vue 为空。
  */
-export const VUE_RUNTIME_VERSION = '3.5.43'
+function vueRuntimeUrl(): string {
+	const url = `${resolveVendorBase()}vue.global.prod.js`
+	// URL 会在发布时写死进页面产物，用同源相对路径，避免把 localhost/发布机 IP 带进产物，
+	// 换 host（localhost ↔ 192.168.x.x）访问渲染页时仍指向同一站点。
+	try {
+		const u = new URL(url, window.location.href)
+		return u.origin === window.location.origin ? u.pathname : u.href
+	} catch {
+		return url
+	}
+}
 
 /**
  * 源码是否为 Vue 单文件组件（跳过前导注释后，以 <template>/<script>/<style> 块开头）。
@@ -217,6 +240,36 @@ export const VUE_RUNTIME_VERSION = '3.5.43'
 export function isVueSfc(source: string): boolean {
 	const s = (source || '').replace(/^(\s|\/\/[^\n]*(\n|$)|\/\*[\s\S]*?\*\/|<!--[\s\S]*?-->)+/, '')
 	return /^<(template|script|style)[\s>]/.test(s)
+}
+
+/**
+ * 解析源码里声明的 CDN 依赖，按声明先后返回（重复的只保留首次）。
+ * 三种注释写法等价，保证 React 与 Vue 页面用法一致：
+ *   <!-- @cdn https://a/a.css -->   Vue SFC / HTML 注释
+ *   // @cdn https://a/a.js          JS/TS 行注释
+ *   /* @cdn https://a/a.js *\/      JS/TS 块注释
+ * 由调用方按扩展名分流：CSS 并行加载，JS 按声明顺序串行。
+ */
+export function extractCdnUrls(source: string): string[] {
+	const found: Array<{ index: number; url: string }> = []
+	const collect = (re: RegExp) => {
+		let m: RegExpExecArray | null
+		while ((m = re.exec(source || ''))) found.push({ index: m.index, url: m[1] })
+	}
+	collect(/<!--\s*@cdn\s+(\S+?)\s*-->/g)
+	collect(/^[ \t]*\/\/[ \t]*@cdn[ \t]+(\S+)/gm)
+	collect(/\/\*[ \t]*@cdn[ \t]+(\S+?)[ \t]*\*\//g)
+
+	found.sort((a, b) => a.index - b.index)
+	const urls: string[] = []
+	if (!found.length) return urls
+	const seen: Record<string, boolean> = {}
+	found.forEach(({ url }) => {
+		if (seen[url]) return
+		seen[url] = true
+		urls.push(url)
+	})
+	return urls
 }
 
 async function loadVueSfcCompiler(): Promise<any> {
@@ -333,14 +386,11 @@ export async function compileVueSfc(source: string, pageName: string): Promise<C
 
 	// ---- 运行时依赖：全部由页面自己声明，编译器不做框架猜测 ----
 	// vue.global.prod.js 是 SFC 的运行时底座，固定注入；其余（含 UI 框架）都由
-	// <!-- @cdn url --> 声明：JS 按声明顺序串行、CSS 并行，换其他框架无需改编译器
-	const extraCdn: string[] = []
-	const cdnRe = /<!--\s*@cdn\s+(\S+?)\s*-->/g
-	let cm: RegExpExecArray | null
-	while ((cm = cdnRe.exec(source))) extraCdn.push(cm[1])
+	// @cdn 声明：JS 按声明顺序串行、CSS 并行，换其他框架无需改编译器
+	const extraCdn = extractCdnUrls(source)
 
 	const cssUrls: string[] = []
-	const jsUrls: string[] = [`https://unpkg.com/vue@${VUE_RUNTIME_VERSION}/dist/vue.global.prod.js`]
+	const jsUrls: string[] = [vueRuntimeUrl()]
 	for (const u of extraCdn) (/\.css($|\?)/.test(u) ? cssUrls : jsUrls).push(u)
 
 	// ---- 组装组件体（在 __buildSfcComponent 内延迟执行：首次挂载、Vue 就绪后才触碰 window.Vue）----
@@ -385,9 +435,20 @@ ${componentBody}
     return loader[url];
   }
 
+  // 页面设置里配置的组件库（宿主在挂载前写入 window.__CustomPageLibraries）。
+  // 必须在 Vue 之后按序加载：Element Plus / Vant 等 UMD 包在全局分支里依赖 window.Vue。
+  function __pageLibs() {
+    var libs = window.__CustomPageLibraries || {};
+    return {
+      css: Object.prototype.toString.call(libs.css) === '[object Array]' ? libs.css : [],
+      js: Object.prototype.toString.call(libs.js) === '[object Array]' ? libs.js : []
+    };
+  }
+
   function __loadVueRuntime() {
     var w = window;
-    CSS_URLS.forEach(function (u) { __loadAsset(u).catch(function () {}); });
+    var pageLibs = __pageLibs();
+    CSS_URLS.concat(pageLibs.css).forEach(function (u) { __loadAsset(u).catch(function () {}); });
     // Monaco 的全局 AMD loader（window.define.amd）会劫持 Element Plus 等 UMD 库走 define 分支，
     // 导致 window.ElementPlus 永远为空——加载期间临时屏蔽 define，结束后恢复。
     // __CuiVueDefineCleared 防止两个 Vue 页面并发加载时互相把对方的原始 define 覆盖成 undefined。
@@ -406,7 +467,7 @@ ${componentBody}
       }
     };
     var chain = Promise.resolve();
-    JS_URLS.forEach(function (u) { chain = chain.then(function () { return __loadAsset(u); }); });
+    JS_URLS.concat(pageLibs.js).forEach(function (u) { chain = chain.then(function () { return __loadAsset(u); }); });
     return chain.then(function () {
       restore();
       if (!w.Vue) throw new Error('Vue 运行时加载失败（window.Vue 为空）');
@@ -472,6 +533,11 @@ export function isLegacyIiife(code: string): boolean {
 	return code.includes(CUSTOM_REGISTRY) || code.includes('__CustomPageEntry')
 }
 
+/** 产物是否为 Vue SFC 页面（自带 Vue 运行时加载器，组件库需由它排在 Vue 之后加载） */
+export function isVueSfcBundle(code: string): boolean {
+	return code.includes('__CuiVueAssetLoader')
+}
+
 /**
  * 编译 JS/JSX 源码为可注入的 IIFE。React + TypeScript 预设（剥离类型注解，兼容 AI 生成的带类型代码）。
  */
@@ -490,6 +556,7 @@ export async function compileTsx(source: string, pageName: string, entryName = D
 	})
 
 	const body = transformed.code || ''
+	const cdnUrls = extractCdnUrls(source)
 
 	const code = `(function () {
   const {
@@ -572,6 +639,31 @@ ${body}
   if (typeof __CustomPageEntry === 'undefined' && window[${JSON.stringify(CUSTOM_RUNTIME)}] && window[${JSON.stringify(CUSTOM_RUNTIME)}].React) {
     // 无默认导出时兜底：尝试当作纯 JSX 的默认渲染
     __CustomPageEntry = function () { return window[${JSON.stringify(CUSTOM_RUNTIME)}].React.createElement('div', null, '未提供默认导出'); };
+  }
+  // 页面顶部的 @cdn 声明（// @cdn url 或 /* @cdn url */）：渲染前按声明顺序加载，
+  // CSS 并行、JS 串行；加载完再渲染页面组件，与 Vue SFC 的 <!-- @cdn --> 同语义。
+  // 页面设置里勾选的组件组由宿主在本脚本注入前加载，此处只处理页面自带声明。
+  var __CDN_URLS = ${JSON.stringify(cdnUrls)};
+  if (__CDN_URLS.length && __CustomPageEntry) {
+    var __PageEntry = __CustomPageEntry;
+    __CustomPageEntry = function __CdnGate(props) {
+      var readyState = useState(false);
+      var errState = useState('');
+      var ready = readyState[0], setReady = readyState[1];
+      var cdnErr = errState[0], setCdnErr = errState[1];
+      useEffect(function () {
+        var alive = true;
+        loadCdn(__CDN_URLS).then(function () {
+          if (alive) setReady(true);
+        }, function (e) {
+          if (alive) setCdnErr(String((e && e.message) || e));
+        });
+        return function () { alive = false; };
+      }, []);
+      if (cdnErr) return React.createElement('div', { style: { padding: 24, color: '#f56c6c' } }, '@cdn 资源加载失败：' + cdnErr);
+      if (!ready) return null;
+      return React.createElement(__PageEntry, props);
+    };
   }
   window[${JSON.stringify(CUSTOM_REGISTRY)}] = window[${JSON.stringify(CUSTOM_REGISTRY)}] || {};
   window[${JSON.stringify(CUSTOM_REGISTRY)}][${JSON.stringify(pageName)}] = {

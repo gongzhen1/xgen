@@ -130,7 +130,7 @@ export default function Page() {
 
 【第三方库】
 - 有两种引入方式，优先第一种：① 让用户在页面工具栏「设置」(Alt+Shift+P) 里勾选「组件组」：一个组件组 = 一套配套文件（清单 json 会被自动展开），渲染前按顺序自动加载（CSS 并行、JS 串行），完成后以全局变量存在，直接按变量名引用（如 window.XLSX），页面里不写任何加载代码；② 组件组里没有的库，在文件顶部按行声明 @cdn（单独一行写：// @cdn 资源地址，可写多行，按扩展名自动区分 CSS/JS，CSS 并行、JS 按声明顺序串行），框架渲染该组件前会自动加载完；也可以运行时用 loadCdn 按需加载（见下）
-- 现有组件组及对应全局变量：Lodash（lodash.js → window._）。注意 ElementPlus / Vant 是 Vue 专用组件库，React 页面里不要勾选、也不要引用；React 的 UI 组件一律用运行时已注入的 antd（规则 A），确需其他 UI 库就按规则 B 用标准 ESM import
+- 现有组件组及对应全局变量：ElementPlus（element-plus.css / element-plus.js / element-plus.zh-cn.js → window.ElementPlus、window.ElementPlusLocaleZhCn）；Vant（vant.css / vant.js → window.vant）；Lodash（lodash.js → window._）
 
 【可用工具函数】
 message.success/error/warning/info
@@ -1279,3 +1279,5 @@ const AiPanel = ({ open, onClose, getCurrentCode, onInsertCode, fileType, isAdva
 }
 
 export default AiPanel
+
+export { buildSystemSkill }

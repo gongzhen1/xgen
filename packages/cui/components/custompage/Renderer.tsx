@@ -6,7 +6,7 @@ import { Spin, Result, Empty } from 'antd'
 
 import NotFound from '@/pages/404'
 
-import { isLegacyIiife, loadCustomPageComponent, loadCustomPageModule } from './compile'
+import { isLegacyIiife, isVueSfcBundle, loadCustomPageComponent, loadCustomPageModule } from './compile'
 import { resolveVendorBase } from '@/utils/vendor-importmap'
 import { loadCdn } from '@/utils/loadCdn'
 import { DataTable } from '@/components/ui'
@@ -93,6 +93,24 @@ const CustomPageView = ({ pageName, props = {}, height }: IProps) => {
 				if (!data || !data.jscode) {
 					setErr(data?.status === 'unpublished' ? '该页面尚未发布' : '未获取到编译代码')
 					return
+				}
+				// 页面设置里配置的组件库：按配置顺序在组件加载前注入（改库/调顺序无需重新发布）
+				const libraries: string[] = Array.isArray(data.libraries) ? data.libraries.filter(Boolean) : []
+				const isCssUrl = (u: string) => /\.css($|\?)/.test(u)
+				const vuePage = isVueSfcBundle(data.jscode)
+				// Vue 页面：Element Plus / Vant 等 UMD 包依赖 window.Vue，必须由 SFC 运行时
+				// 排在 Vue 之后加载，这里只把 URL 交给它（见 compile.ts 的 __pageLibs）
+				w.__CustomPageLibraries = vuePage
+					? { css: libraries.filter(isCssUrl), js: libraries.filter((u) => !isCssUrl(u)) }
+					: { css: [], js: [] }
+				if (libraries.length > 0 && !vuePage) {
+					try {
+						await loadCdn(libraries)
+					} catch (e) {
+						// 单个库加载失败不阻塞页面：页面自身可再走 loadCdn / @cdn 兜底
+						console.warn('[custompage] 组件库加载失败:', e)
+					}
+					if (cancelled) return
 				}
 				// ESM 产物引用 HeroUI 时按需加载样式
 				const legacy = isLegacyIiife(data.jscode)
