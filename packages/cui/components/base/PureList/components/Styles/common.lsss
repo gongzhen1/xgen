@@ -7,4 +7,183 @@
       .sortable-ghost {
             opacity: 0;
       }
+
+	// ============================================================
+	// antd v6 Select 新 DOM 结构兼容（shadow 内静态主题仍是 antd4 类名）
+	// v6: .xgen-select(根即盒) > .xgen-select-content
+	//                                 > .xgen-select-content-value / .xgen-select-placeholder
+	//                                 > input.xgen-select-input
+	//                             > .xgen-select-prefix / .xgen-select-suffix / button.xgen-select-clear
+	// 旧主题只覆盖 .xgen-select-selector / .xgen-select-selection-*。
+	// 数值取自 antd v6.6 在项目 AntdProvider token 下 cssinjs 的真实输出：
+	// padding-inline=11、radius=6、icon=12、箭头/占位 rgba(0,0,0,.25)、
+	// content 右距 6（showArrowPadding 18 - icon 12）；padding-block:8/min-height:38
+	// 由全局 custom_antd_styles 提供。暗色用 :host([data-theme=dark]) 覆盖。
+	// ============================================================
+	.xgen-select {
+		display: inline-flex;
+		flex-wrap: nowrap;
+		align-items: flex-start;
+		padding-inline: 11px;
+		border-radius: 6px;
+		background: #f9f9f9;
+		color: #111111;
+
+		.xgen-select-prefix,
+		.xgen-select-suffix {
+			flex: none;
+			align-self: center;
+			line-height: 1;
+			color: rgba(0, 0, 0, 0.25);
+			font-size: 12px;
+			> :not(:last-child) {
+				margin-inline-end: 4px;
+			}
+		}
+		.xgen-select-prefix {
+			margin-inline-end: 4px;
+		}
+
+		.xgen-select-content {
+			flex: auto;
+			min-width: 0;
+			position: relative;
+			display: flex;
+			margin-inline-end: 6px;
+			&:before {
+				content: '\a0';
+				width: 0;
+				overflow: hidden;
+			}
+			&-value {
+				visibility: inherit;
+				color: #111111;
+				overflow: hidden;
+				white-space: nowrap;
+				text-overflow: ellipsis;
+			}
+			input[readonly] {
+				cursor: inherit;
+				caret-color: transparent;
+			}
+		}
+
+		.xgen-select-placeholder {
+			flex: 1;
+			min-width: 0;
+			overflow: hidden;
+			white-space: nowrap;
+			text-overflow: ellipsis;
+			color: rgba(0, 0, 0, 0.25);
+			pointer-events: none;
+			z-index: 1;
+		}
+
+		// v6 清除按钮是 <button>，需抹掉 UA 默认背景/边框（旧主题按 span 处理）
+		.xgen-select-clear {
+			position: absolute;
+			top: 50%;
+			inset-inline-end: 11px;
+			z-index: 1;
+			width: 12px;
+			height: 12px;
+			margin-top: -6px;
+			padding: 0;
+			background: transparent;
+			border: 0;
+			line-height: 0;
+			color: rgba(0, 0, 0, 0.25);
+			font-size: 12px;
+			cursor: pointer;
+			&:hover {
+				color: rgba(0, 0, 0, 0.45);
+			}
+		}
+
+		// 内部输入框：核心 reset（两种模式都生效）
+		&:not(.xgen-select-customize) {
+			.xgen-select-input {
+				margin: 0;
+				padding: 0;
+				color: #111111;
+				font-family: inherit;
+				font-size: inherit;
+				background: transparent;
+				border: 0;
+				outline: none;
+				appearance: none;
+				&::-webkit-search-cancel-button {
+					display: none;
+					-webkit-appearance: none;
+				}
+			}
+		}
+
+		// 单选：input 绝对定位铺满 content，值/占位垂直居中
+		&.xgen-select-single:not(.xgen-select-customize) {
+			.xgen-select-input {
+				position: absolute;
+				inset: 0;
+				line-height: inherit;
+			}
+			.xgen-select-content {
+				align-self: center;
+				&-has-value {
+					display: block;
+					&:before {
+						display: none;
+					}
+				}
+				&-has-search-value {
+					color: transparent;
+					> *:not(.xgen-select-input) {
+						opacity: 0;
+					}
+				}
+			}
+		}
+
+		// 多选：input 跟随标签流内排，不绝对定位
+		&.xgen-select-multiple {
+			.xgen-select-content {
+				flex-wrap: wrap;
+				align-items: center;
+				margin-inline-end: 0;
+			}
+			.xgen-select-input {
+				position: static;
+				max-width: 100%;
+			}
+		}
+
+		&.xgen-select-disabled {
+			input {
+				cursor: not-allowed;
+			}
+		}
+	}
+}
+
+// 暗色主题色板（对齐 AntdProvider darkAlgorithm + 自定义 token）
+// 必须放在主 :host{} 块外，否则 less 会编译成无效的 ":host :host(...)" 后代选择器
+:host([data-theme='dark']) {
+	.xgen-select {
+		background: #232326;
+		color: #a2a5b9;
+		.xgen-select-prefix,
+		.xgen-select-suffix,
+		.xgen-select-clear {
+			color: rgba(255, 255, 255, 0.25);
+		}
+		.xgen-select-clear:hover {
+			color: rgba(255, 255, 255, 0.45);
+		}
+		.xgen-select-content-value,
+		.xgen-select-input {
+			color: #a2a5b9;
+		}
+		.xgen-select-placeholder {
+			color: rgba(255, 255, 255, 0.25);
+		}
+	}
 }

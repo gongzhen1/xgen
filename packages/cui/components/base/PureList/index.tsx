@@ -45,7 +45,10 @@ const Index = (props: IProps) => {
 	}
 
 	return (
-		<root.div ref={shadowHostRef}>
+		// react-shadow@19 用函数组件 defaultProps 传 mode/delegatesFocus/styleSheets/ssr，
+		// React 19 不再为函数组件注入 defaultProps，必须全部显式传入，
+		// 否则 attachShadow({mode: undefined}) 与 styleSheets.length 连环报错
+		<root.div mode='open' delegatesFocus={false} styleSheets={[]} ssr={false} ref={shadowHostRef}>
 			<ShadowTheme></ShadowTheme>
 			<Styles showLabel={showLabel} builder={builder}></Styles>
 			<If condition={x.list.length}>

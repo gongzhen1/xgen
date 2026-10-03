@@ -12,7 +12,8 @@ const { TextArea } = Input
 const VUE_PAGE_SKILL = `你是 YAO 低代码平台「高级页面」开发助手（Vue 模式）。当前页面是 Vue 单文件组件（advanced-vue），你需要输出原生 Vue 3 SFC 代码。
 
 【输出格式】
-只输出代码，用 \`\`\`vue 围栏包裹，不要任何解释文字。代码必须包含 <template> 与 <script setup>，样式写在 <style scoped> 里。
+先输出完整代码，用 \`\`\`vue 围栏包裹（必须包含 <template> 与 <script setup>，样式写在 <style scoped> 里）。
+代码围栏结束后，空一行，再用 2-4 行说明本次改动：小改动直接指出改了哪里（函数名 / 关键片段，如「第 12 行 handleAdd 增加非空校验」），整体生成时说清结构与注意点。说明里不要重复贴代码。
 
 【运行时环境】
 - Vue 3 全局构建：源码由框架在浏览器内用 @vue/compiler-sfc 编译，运行时 window.Vue 由平台本地内置、渲染前自动注入，页面不需要任何声明或加载代码
@@ -40,7 +41,8 @@ const REACT_PAGE_SKILL = `你是 YAO 低代码平台「高级页面」开发助�
 - 默认使用 antd 方案（规则 A，无 import，组件全局注入）
 - 仅当用户明确提到 HeroUI / heroui 组件库时，使用 HeroUI 方案（规则 B，标准 ESM import）。两套方案不要混用风格
 【输出格式（两种方案共同）】
-只输出代码，用 \`\`\`tsx 围栏包裹，不要任何解释文字。代码必须是：export default function Page() { return (...) }
+先输出完整代码，用 \`\`\`tsx 围栏包裹（代码必须是 export default function Page() { return (...) }）。
+代码围栏结束后，空一行，再用 2-4 行说明本次改动：小改动直接指出改了哪里（函数名 / 关键片段，如「第 24 行新增 loading 状态」），整体生成时说清结构与注意点。说明里不要重复贴代码。
 允许使用 TypeScript 类型语法（编译器会自动剥离），但禁止 import 除 react/react-dom/antd/@heroui/react 之外的任何模块
 
 【样式写法（两种方案共同，必须遵守）】
@@ -241,7 +243,7 @@ function buildSystemSkill(fileType: string, isAdvanced: boolean, isVue = false):
 		return (
 			'你是 YAO 低代码平台的脚本开发助手。用户会用自然语言描述需求，你需要输出可在 YAO 引擎 v8go 运行时中执行的 JavaScript 脚本。\n\n' +
 			'【输出格式】\n' +
-			'只输出代码，用 ```javascript 围栏包裹，不要任何解释文字。\n\n' +
+			'先输出完整代码，用 ```javascript 围栏包裹。代码围栏结束后空一行，再用 2-4 行说明本次改动：小改动直接指出改了哪个函数的哪些行（如「GetUserList 第 3 行新增 wheres 判空」），整体生成时说清各函数职责与调用方式。说明里不要重复贴代码。\n\n' +
 			'【运行时环境】\n' +
 			'- v8go 运行时，纯 JavaScript（ES6+），支持 async/await、Promise\n' +
 			'- 脚本中的 function 会被注册为处理器，可被 API/Flow/Table 等通过 process 字段调用\n' +
@@ -309,7 +311,7 @@ function buildSystemSkill(fileType: string, isAdvanced: boolean, isVue = false):
 	return (
 		'你是 YAO 低代码平台的 Xgen 页面 DSL 配置助手。用户会用自然语言描述一个管理页面，你需要输出 Xgen 框架的 DSL JSON 配置（Table 表格页或 Form 表单页）。\n\n' +
 		'【输出格式】\n' +
-		'只输出 JSON，用 ```json 围栏包裹，不要任何解释文字。\n\n' +
+		'先输出完整 JSON，用 ```json 围栏包裹。代码围栏结束后空一行，再用 1-3 行说明改了哪些字段或配置项（如「columns.status 增加 tag 展示」），不要重复贴 JSON。\n\n' +
 		'【Table 表格页 DSL 结构】\n' +
 		'{\n' +
 		'  "name": "表格名称",          // 表格名称\n' +
@@ -476,7 +478,9 @@ const CODE_COLORS = {
 	border: '#2e3545',
 	text: '#d1d3db',
 	icon: '#9aa4b2',
-	iconHover: '#7bb8ff'
+	iconHover: '#7bb8ff',
+	/** 生成中：操作图标置灰 */
+	iconDisabled: '#565d6b'
 }
 
 const LANG_LABEL: Record<string, string> = {
@@ -611,17 +615,24 @@ function splitContent(raw: string): { type: 'text' | 'code'; lang: string; value
 const CodeBlock = ({
 	lang,
 	code,
+	disabled,
 	onCopy,
 	onInsert
 }: {
 	lang: string
 	code: string
+	/** AI 还没输出完时置灰：此时代码不完整，禁止复制 / 插入 */
+	disabled?: boolean
 	onCopy: () => void
 	onInsert: () => void
 }) => {
 	// 编辑器高度按行数撑开（1 行 18px），超过 320px 交给 Monaco 内部滚动
 	const height = Math.min(Math.max(code.split('\n').length * 18 + 16, 64), 320)
-	const iconStyle: React.CSSProperties = { cursor: 'pointer', display: 'block', color: CODE_COLORS.icon }
+	const iconStyle: React.CSSProperties = {
+		cursor: disabled ? 'not-allowed' : 'pointer',
+		display: 'block',
+		color: disabled ? CODE_COLORS.iconDisabled : CODE_COLORS.icon
+	}
 	return (
 		<div
 			style={{
@@ -671,11 +682,13 @@ const CodeBlock = ({
 						strokeLinecap='round'
 						strokeLinejoin='round'
 						style={iconStyle}
-						onMouseEnter={(e) => (e.currentTarget.style.color = CODE_COLORS.iconHover)}
-						onMouseLeave={(e) => (e.currentTarget.style.color = CODE_COLORS.icon)}
-						onClick={onCopy}
+						onMouseEnter={(e) => !disabled && (e.currentTarget.style.color = CODE_COLORS.iconHover)}
+						onMouseLeave={(e) =>
+							(e.currentTarget.style.color = disabled ? CODE_COLORS.iconDisabled : CODE_COLORS.icon)
+						}
+						onClick={() => !disabled && onCopy()}
 					>
-						<title>复制</title>
+						<title>{disabled ? '生成中，暂不可复制' : '复制'}</title>
 						<rect x='2' y='8' width='14' height='14' rx='2' />
 						<path d='M8 6V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-2' />
 					</svg>
@@ -689,11 +702,13 @@ const CodeBlock = ({
 						strokeLinecap='round'
 						strokeLinejoin='round'
 						style={iconStyle}
-						onMouseEnter={(e) => (e.currentTarget.style.color = CODE_COLORS.iconHover)}
-						onMouseLeave={(e) => (e.currentTarget.style.color = CODE_COLORS.icon)}
-						onClick={onInsert}
+						onMouseEnter={(e) => !disabled && (e.currentTarget.style.color = CODE_COLORS.iconHover)}
+						onMouseLeave={(e) =>
+							(e.currentTarget.style.color = disabled ? CODE_COLORS.iconDisabled : CODE_COLORS.icon)
+						}
+						onClick={() => !disabled && onInsert()}
 					>
-						<title>插入到编辑器</title>
+						<title>{disabled ? '生成中，暂不可插入' : '插入到编辑器'}</title>
 						<path d='M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v3' />
 						<path d='M2 12h9' />
 						<path d='m8 9 3 3-3 3' />
@@ -1125,6 +1140,8 @@ const AiPanel = ({ open, onClose, getCurrentCode, onInsertCode, fileType, isAdva
 											key={i}
 											lang={p.lang}
 											code={p.value}
+											// 当前这条回复还在流式输出：代码不完整，复制 / 插入置灰
+											disabled={streaming && idx === messages.length - 1}
 											onCopy={() => copyRaw(p.value)}
 											onInsert={() => insertRaw(p.value)}
 										/>

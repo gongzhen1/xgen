@@ -191,6 +191,8 @@ const Index = () => {
 	const editorRef = useRef<any>(null)
 	const monacoRef = useRef<any>(null)
 	const formattingRef = useRef(false)
+	// 页面根节点：用于定位外层布局容器，去掉它的底部内边距
+	const rootRef = useRef<HTMLDivElement>(null)
 
 	// fetch 在 HTTP 4xx/5xx 时不会抛错，需手动检查 resp.ok，
 	// 否则接口报错也会被当作成功并弹出“保存成功/发布成功”。
@@ -557,8 +559,20 @@ const Index = () => {
 
 	const showRunBtn = fileType === 'script' || isAdvanced
 
+	// 布局容器（layouts/components/Container）给 .content_wrap 加了 90px 底部内边距，是给滚动型页面留的空白；
+	// 本页是全屏编辑器（高度按 100vh 计算），会因此多出一条空白，临时清零并在卸载时还原
+	useEffect(() => {
+		const wrap = rootRef.current?.closest('.content_wrap') as HTMLElement | null
+		if (!wrap) return
+		const prev = wrap.style.paddingBottom
+		wrap.style.paddingBottom = '0'
+		return () => {
+			wrap.style.paddingBottom = prev
+		}
+	}, [])
+
 	return (
-		<div className={styles._local}>
+		<div className={styles._local} ref={rootRef}>
 			{/* 华为风格工具栏 */}
 			<div className={clsx('studio', 'toolbar', 'script__toolbar')}>
 				<div className='left'>
