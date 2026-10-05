@@ -19,6 +19,7 @@ const Index = ({ x, type }: IPropsCommon) => {
 	const props_form: IPropsForm = {
 		code: x.captcha.content,
 		loading: x.loading.login,
+		captcha_enabled: x.captcha_enabled,
 		getCaptcha: x.getCaptcha,
 		onFinish: x.onFinish
 	}

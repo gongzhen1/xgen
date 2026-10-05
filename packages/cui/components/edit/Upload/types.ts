@@ -102,4 +102,5 @@ export type PreviewProps = {
 	url?: string // the url for the download or preview
 	useAppRoot?: boolean // if false, use the data root, else use the app root, default is false
 	storage?: Storage // storage option for the upload to the storage server directly (e.g. firebase, s3, etc)
+	disabled?: boolean // if true, hide the remove button in the toolbar (readonly display)
 }

@@ -12,7 +12,7 @@ const Index = () => {
 	useAsyncEffect(async () => {
 		await window.$app.Event.emit('app/getAppInfo')
 		x.user_type = 'admin'
-		x.getCaptcha()
+		x.initCaptcha()
 	}, [])
 
 	return <Common type='admin' x={x}></Common>

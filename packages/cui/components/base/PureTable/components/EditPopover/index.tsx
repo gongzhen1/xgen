@@ -1,9 +1,9 @@
 import { useMemoizedFn } from 'ahooks'
 import { Button, Form, Popover } from 'antd'
 import clsx from 'clsx'
+import { useState } from 'react'
 
 import { X } from '@/components'
-import { hidePopover } from '@/knife'
 import { CheckOutlined } from '@ant-design/icons'
 
 import ViewContent from '../ViewContent'
@@ -24,6 +24,8 @@ const Index = (props: IProps) => {
 	const edit_type = field_detail.edit.type
 	const { form_bind, form_value } = edit_bind_value
 
+	const [open, setOpen] = useState(false)
+
 	const props_edit_component: Component.PropsEditComponent = {
 		...field_detail.edit.props,
 		__namespace: namespace,
@@ -36,9 +38,11 @@ const Index = (props: IProps) => {
 	}
 
 	const onFinish = useMemoizedFn((v: any) => {
-		onSave(v)
+		// 由 React 受控关闭浮层，避免手动 remove portal DOM 后，
+		// 表格刷新触发 React 卸载浮层报 removeChild NotFoundError
+		setOpen(false)
 
-		hidePopover()
+		onSave(v)
 	})
 
 	const edit_content = (
@@ -70,6 +74,8 @@ const Index = (props: IProps) => {
 			overlayClassName={clsx([styles._local, styles[edit_type]])}
 			placement={getPlacement(field_detail.edit.type)}
 			trigger='click'
+			open={open}
+			onOpenChange={setOpen}
 			destroyTooltipOnHide={{ keepParent: false }}
 			content={edit_content}
 			align={{ offset: [-20, 0] }}

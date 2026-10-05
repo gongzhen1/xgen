@@ -9,6 +9,11 @@ import type { Response } from '@/types'
 @injectable()
 export default class Index {
 	@catchError()
+	getConfig<Res>() {
+		return axios.get<{}, Response<Res>>(`${getApiBase()}/login/config`)
+	}
+
+	@catchError()
 	getCaptcha<Res>(url?: string) {
 		return axios.get<{}, Response<Res>>(
 			url ? url : `${getApiBase()}/${window.$app.api_prefix}/login/admin/captcha?type=digit`

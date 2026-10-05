@@ -181,11 +181,13 @@ const Custom = window.$app.memo((props: CustomProps) => {
 		size: size,
 		url: props.previewURL,
 		useAppRoot: props.useAppRoot,
-		storage: props.storage
+		storage: props.storage,
+		disabled: props.disabled
 	}
 
 	props_upload['itemRender'] = (_, file: UploadFile, fileList, { remove }) => {
 		const removeFile = async () => {
+			if (props.disabled) return
 			setError(undefined)
 			setProgress(new ProgressEvent('progress', { loaded: 0, total: 0 }))
 			remove()
@@ -213,7 +215,9 @@ const Custom = window.$app.memo((props: CustomProps) => {
 				__shadow
 			])}
 		>
-			<Upload {...props_upload}>{visible_btn && <UploadBtn {...props_upload_btn}></UploadBtn>}</Upload>
+			<Upload {...props_upload}>
+				{visible_btn && !props.disabled && <UploadBtn {...props_upload_btn}></UploadBtn>}
+			</Upload>
 		</div>
 	)
 })

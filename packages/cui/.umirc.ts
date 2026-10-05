@@ -19,7 +19,9 @@ export default defineConfig({
 	valtio: false,
 	antd: { import: true, style: undefined },
 	codeSplitting: { jsStrategy: 'granularChunks' },
-	locale: { default: 'zh-CN', antd: true, baseNavigator: true },
+	// baseNavigator 关闭：不跟随浏览器语言（英文环境浏览器会把 antd 组件渲染成英文），默认锁定 zh-CN；
+	// 手动切换语言（写入 localStorage.umi_locale）仍然生效
+	locale: { default: 'zh-CN', antd: true, baseNavigator: false },
 	conventionRoutes,
 	define: { $runtime: { BASE: process.env.BASE } },
 	// @ts-ignore

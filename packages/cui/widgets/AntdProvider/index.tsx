@@ -2,6 +2,8 @@ import { App as AntdApp, ConfigProvider, theme as antdTheme } from 'antd'
 import en_US from 'antd/locale/en_US'
 import zh_CN from 'antd/locale/zh_CN'
 
+import dayjs from 'dayjs'
+import 'dayjs/locale/zh-cn'
 import { getLocale } from '@umijs/max'
 import { useMemo, useState } from 'react'
 import { container } from 'tsyringe'
@@ -14,6 +16,10 @@ import type { PropsWithChildren } from 'react'
 const Index = ({ children, theme }: PropsWithChildren<{ theme?: string }>) => {
 	const locale = getLocale()
 	const is_cn = locale === 'zh-CN'
+
+	// antd 6 日历面板的月份/星期表头由 dayjs 渲染（ConfigProvider locale 不覆盖这部分），
+	// 需注册 dayjs zh-cn locale 并设置全局 locale，否则显示英文 Oct / Su Mo Tu
+	dayjs.locale(is_cn ? 'zh-cn' : 'en')
 	const [global] = useState(() => container.resolve(GlobalModel))
 	const is_dark = (theme ?? global?.theme ?? window.$global?.theme) === 'dark'
 

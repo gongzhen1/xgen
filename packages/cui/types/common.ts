@@ -65,5 +65,8 @@ export declare namespace Common {
 
 	interface Column extends BaseColumn, FieldDetail {}
 	interface TableColumn extends TableBaseColumn, FieldDetail {}
-	interface EditColumn extends BaseColumn, EditFieldDetail {}
+	// view-only 字段：Yao form DSL 允许字段只配置 view（如详情页 Tag/Text），此时 edit 缺省
+	interface EditColumn extends BaseColumn, EditFieldDetail {
+		view?: FieldDetail['view']
+	}
 }

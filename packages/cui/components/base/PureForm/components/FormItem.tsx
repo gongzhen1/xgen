@@ -1,11 +1,11 @@
 import { useMemoizedFn } from 'ahooks'
-import { Col, Popover, Input, Button } from 'antd'
+import { Col, Popover, Input, Button, Form } from 'antd'
 import clsx from 'clsx'
 import { observer } from 'mobx-react-lite'
 import { PaperPlaneTilt } from 'phosphor-react'
 import { useMemo, useState, useRef, useEffect } from 'react'
 
-import { X } from '@/components'
+import { X, Item } from '@/components'
 import { useGlobal } from '@/context/app'
 import Timeline from '@/components/edit/Timeline'
 
@@ -23,6 +23,11 @@ const Index = (props: IPropsFormItem) => {
 	const input = useRef<any>(null)
 	const [visible, setVisible] = useState(false)
 	const [loading, setLoading] = useState(false)
+
+	// view-only 字段取值：X 组件只展开内层 props 对象，Form.Item 注入到顶层的值会丢失，
+	// 因此用 useWatch 显式取值后传入 __value
+	const form_instance = Form.useFormInstance()
+	const bind_value = Form.useWatch(item.bind, form_instance)
 
 	const unLoading = useMemoizedFn(() => setLoading(false))
 
@@ -128,6 +133,29 @@ const Index = (props: IPropsFormItem) => {
 					{...disabled_props}
 					{...item.edit?.props}
 				/>
+			) : type === 'view' && item.view?.type ? (
+				// view-only 字段（form DSL 只配置 view）：用 view 组件渲染，
+				// 通过 Form.Item 的 valuePropName 把值注入 __value（view 组件不接 antd value）
+				<Item
+					{...{ __bind: item.bind, __name: item.name }}
+					hideLabel={item.view?.hideLabel || item.hideLabel || undefined}
+					valuePropName='__value'
+				>
+					<X
+						type='view'
+						name={item.view.type.includes('/') ? item.view.type.split('/')[1] : item.view.type}
+						props={{
+							...item.view?.props,
+							__value: bind_value,
+							__namespace: namespace,
+							__primary: primary,
+							__type: type,
+							__bind: item.bind,
+							__name: item.name,
+							__hidelabel: item.view?.hideLabel || item.hideLabel || undefined
+						}}
+					></X>
+				</Item>
 			) : (
 				<X
 					type='edit'

@@ -41,6 +41,7 @@ const Index = (props: IPropsPureForm) => {
 	const { getFieldsValue, setFieldsValue, resetFields, validateFields } = form
 	const onValuesChange = useOnValuesChange(hooks?.onChange!, setData, setSetting)
 	const form_container = useRef<HTMLDivElement>(null)
+	const onLoadFiredRef = useRef(false)
 	const { onLoadSync, reference, showSectionDivideLine } = form_props
 	const disabled = type === 'view'
 	const [visible_flat_content, setVisibleFlatContent] = useState(!!reference?.flatContent?.defaultOpen)
@@ -65,8 +66,10 @@ const Index = (props: IPropsPureForm) => {
 		setFieldsValue(data)
 		if (!Object.keys(data).length) return
 		if (!onLoadSync) return
-
-		Object.keys(data).map((key) => onValuesChange({ [key]: data[key] }), true)
+		// 仅在首次拿到数据时触发 load 联动：setSetting 引发的 data 引用变化不再重复请求（防死循环）
+		if (onLoadFiredRef.current) return
+		onLoadFiredRef.current = true
+		Object.keys(data).forEach((key) => onValuesChange({ [key]: data[key] }, true))
 	}, [data, onLoadSync])
 
 	// Set fields value and trigger ${namespace}/setFieldsValue event

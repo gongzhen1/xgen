@@ -1,12 +1,14 @@
 import { history } from '@umijs/max'
 
+import { Bind } from '@/utils'
+
 import type { Action } from '@/types'
 import type { OnAction } from '../useAction'
 import { local, session } from '@yaoapp/storex'
 
-type Args = Pick<OnAction, 'namespace' | 'extra'>
+type Args = Pick<OnAction, 'namespace' | 'extra' | 'data_item'>
 
-export default ({ namespace, extra }: Args) => {
+export default ({ namespace, extra, data_item }: Args) => {
 	const getToken = (): string => {
 		const is_session_token = local.token_storage === 'sessionStorage'
 		const token = is_session_token ? session.token : local.token
@@ -23,8 +25,12 @@ export default ({ namespace, extra }: Args) => {
 		return result
 	}
 
-	return (payload: Action.ActionMap['Common.historyPush']) =>
+	// 模板数据：行数据（行内按钮）+ URL query（顶部按钮），供 payload 中 {{team_id}} 等变量渲染
+	const bind_data = { ...(data_item || {}), ...(extra?.query || {}) }
+
+	return (rawPayload: Action.ActionMap['Common.historyPush']) =>
 		new Promise<void>((resolve) => {
+			const payload = Bind(rawPayload, bind_data) as Action.ActionMap['Common.historyPush']
 			const search = payload.search ? new URLSearchParams(payload.search).toString() : undefined
 			const query =
 				payload?.withFilterQuery && extra?.query

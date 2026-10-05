@@ -19,9 +19,19 @@ const Index = (props: IPropsActions) => {
 
 	const _actions = useMemo(() => getTemplateValue(actions, data_item), [actions, data_item])
 
+	// 支持 hidden 模板：渲染结果为真值（true / 非空且非 "false"/"0" 字符串）时隐藏该操作
+	const visible_actions = useMemo(
+		() =>
+			_actions.filter((it: any) => {
+				const v = it.hidden
+				return !(v === true || (typeof v === 'string' && v !== '' && v !== 'false' && v !== '0'))
+			}),
+		[_actions]
+	)
+
 	return (
 		<div className={clsx([styles._local, 'flex justify_end'])}>
-			{_actions.map((it, index) => (
+			{visible_actions.map((it, index) => (
 				<Tooltip
 					title={it.title}
 					key={index}

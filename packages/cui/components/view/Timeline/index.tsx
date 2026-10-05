@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import React, { useMemo } from 'react'
 
 import styles from './index.less'
 
@@ -8,6 +8,13 @@ interface FlowLogEvent {
 	time: string
 	action: string
 	message: string
+	round?: number
+	node_id?: string
+	node_name?: string
+	operator?: string
+	operator_name?: string
+	task_id?: number
+	comment?: string
 }
 
 interface IProps extends Component.PropsViewComponent {
@@ -71,9 +78,14 @@ const Index = (props: IProps & { value?: any }) => {
 			{events.map((event, index) => {
 				const actionStyle = getActionStyle(event.action)
 				const iconName = getActionIcon(event.action)
+				const prevRound = index > 0 ? Number(events[index - 1].round) || 1 : 0
+				const curRound = Number(event.round) || 1
+				const showRoundDivider = index === 0 ? curRound > 1 : curRound !== prevRound
 
 				return (
-					<div key={index} className={`${styles.item} ${actionStyle}`}>
+					<React.Fragment key={index}>
+						{showRoundDivider && <div className={styles.roundDivider}>第 {curRound} 轮</div>}
+						<div className={`${styles.item} ${actionStyle}`}>
 						<div className={styles.dot}>
 							{iconName === 'start' && (
 								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -126,13 +138,18 @@ const Index = (props: IProps & { value?: any }) => {
 							)}
 						</div>
 						<div className={styles.line}></div>
-						<div className={styles.content}>
-							<div className={styles.time}>{event.time}</div>
-							<div className={styles.message}>{event.message}</div>
+							<div className={styles.content}>
+								<div className={styles.time}>
+									{event.time}
+									{event.node_name && <span className={styles.nodeName}>【{event.node_name}】</span>}
+								</div>
+								<div className={styles.message}>{event.message}</div>
+								{event.comment && <div className={styles.comment}>意见：{event.comment}</div>}
+							</div>
 						</div>
-					</div>
-				)
-			})}
+					</React.Fragment>
+					)
+				})}
 		</div>
 	)
 }

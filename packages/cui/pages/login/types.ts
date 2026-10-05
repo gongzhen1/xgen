@@ -103,6 +103,8 @@ export interface IPropsCommon {
 export interface IPropsForm {
 	code: Captcha['content']
 	loading: boolean
+	/** 验证码开关（后端 .env YAO_LOGIN_CAPTCHA 控制），关闭时隐藏验证码输入 */
+	captcha_enabled: boolean
 	getCaptcha: () => void
 	onFinish: (data: FormValues) => void
 }

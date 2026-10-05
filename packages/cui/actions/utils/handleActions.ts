@@ -25,13 +25,13 @@ export default ({ namespace, primary, data_item, it, extra }: OnAction) => {
 
 		switch (type) {
 			case 'Common.openModal':
-				total.push({ task: openModal({ namespace, primary, data_item, payload }), ...flow_info })
+				total.push({ task: openModal({ namespace, primary, data_item, extra, payload }), ...flow_info })
 				break
 			case 'Common.closeModal':
 				total.push({ task: closeModal({ namespace }), ...flow_info })
 				break
 			case 'Common.historyPush':
-				total.push({ task: historyPush({ namespace, extra }), ...flow_info })
+				total.push({ task: historyPush({ namespace, extra, data_item }), ...flow_info })
 				break
 			case 'Common.historyBack':
 				total.push({ task: historyBack(), ...flow_info })

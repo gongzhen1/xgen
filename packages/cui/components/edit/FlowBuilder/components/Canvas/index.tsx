@@ -4,7 +4,7 @@ import { FlowValue, Type } from '../../types'
 import { Execute, IconName, IconSize } from '../../utils'
 import { useBuilderContext } from '../Builder/Provider'
 
-import { Button, Tooltip, message } from 'antd'
+import { Button, Popconfirm, Tooltip, message } from 'antd'
 import { useEffect, useState } from 'react'
 
 interface IProps {
@@ -97,6 +97,25 @@ const Index = (props: IProps) => {
 			setPanelNode(() => undefined)
 			setPanelEdge(() => undefined)
 		}
+	}
+
+	// Clear the whole canvas: removing all nodes & edges reuses the same data flow
+	// as node/edge deletion — setNodes/setEdges trigger the Provider's effects,
+	// which report 'nodes'/'edges' via onData so the form value stays in sync
+	// (flow/execute and the other FlowValue fields are untouched).
+	const doClear = () => {
+		setNodes(() => [])
+		setEdges(() => [])
+
+		// Reset panel selections so a removed node/edge can't leave a stale panel
+		setOpenSettings(() => false)
+		setOpenExecute(() => false)
+		setOpenEdge(() => false)
+		setOpenPresets(() => false)
+		setPanelNode(() => undefined)
+		setPanelEdge(() => undefined)
+		setOpenPanel(() => false)
+		setShowMask(() => true)
 	}
 
 	const getType = () => {
@@ -481,6 +500,29 @@ const Index = (props: IProps) => {
 								<Icon name='icon-sliders' size={16} />
 							</a>
 						</Tooltip>
+
+						{nodes.length > 0 && (
+							<Popconfirm
+								title={
+									is_cn
+										? '清空后将移除画布上全部节点与连线，且不可恢复，确定清空？'
+										: 'This will remove all nodes and connections on the canvas and cannot be undone. Are you sure?'
+								}
+								onConfirm={doClear}
+								okText={is_cn ? '确认' : 'Confirm'}
+								cancelText={is_cn ? '取消' : 'Cancel'}
+								placement={fullscreen ? 'bottom' : 'top'}
+							>
+								<Tooltip
+									title={is_cn ? '清空画布' : 'Clear Canvas'}
+									placement={fullscreen ? 'bottom' : 'top'}
+								>
+									<a style={{ marginRight: 12, marginTop: 2 }}>
+									<Icon name='icon-trash-2' size={16} />
+								</a>
+								</Tooltip>
+							</Popconfirm>
+						)}
 
 						{!fullscreen ? (
 							<Tooltip

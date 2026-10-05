@@ -42,7 +42,8 @@ const Index = (props: IProps) => {
 	const onFinish = useMemoizedFn((v: any) => {
 		x.resetSearchParams()
 
-		window.$app.Event.emit(`${x.namespace.value}/search`, v)
+		// 保留 URL query 参数（如 where.team_id.eq），避免筛选/重置时丢失页面上下文
+		window.$app.Event.emit(`${x.namespace.value}/search`, { ...(search_params || {}), ...v })
 	})
 	const resetSearchParams = useMemoizedFn(x.resetSearchParams)
 	const search = useMemoizedFn(x.search)

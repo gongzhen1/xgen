@@ -1,0 +1,45 @@
+._local {
+	// 必须保持 flex，否则会覆盖 antd Transfer 根元素的横向布局，变成上下堆叠
+	display: flex;
+	width: 100%;
+
+	:global {
+		.xgen-transfer-list-body {
+			height: 260px;
+		}
+
+		.xgen-transfer-list-body-with-search {
+			height: 260px;
+		}
+	}
+}
+
+.pager {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	flex-wrap: nowrap;
+	gap: 4px;
+	padding: 4px 8px;
+	min-height: 28px;
+}
+
+.controls {
+	display: flex;
+	align-items: center;
+	flex-wrap: nowrap;
+	gap: 2px;
+}
+
+.size_select {
+	width: 92px;
+	min-width: 92px;
+}
+
+.total,
+.loading {
+	font-size: 12px;
+	line-height: 1;
+	color: var(--color-text-3, #999);
+	white-space: nowrap;
+}

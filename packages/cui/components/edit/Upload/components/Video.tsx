@@ -55,6 +55,7 @@ const Index = (props: IPropsCustomRender) => {
 				abort={abort}
 				preview={preview}
 				showOpration={showOpration}
+				disabled={rest_props.disabled}
 			/>
 
 			<Loader

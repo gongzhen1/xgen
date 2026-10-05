@@ -82,10 +82,11 @@ const Index = (props: IPropsFilter) => {
 		onFinish(getFieldsValue())
 	}
 
+	// 操作按钮 extra.query：URL query 参数（如 where.team_id.eq）+ 当前筛选表单值
 	const props_actions: IPropsActions = {
 		namespace,
 		actions,
-		query
+		query: { ...Object.fromEntries(params), ...(query || {}) }
 	}
 
 	return (

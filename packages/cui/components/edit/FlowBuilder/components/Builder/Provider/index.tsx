@@ -142,7 +142,7 @@ export const BuilderProvider: React.FC<IProps> = (props) => {
 				sourcePosition: 'right',
 				targetPosition: 'left',
 				className: className,
-				position: node.position,
+				position: node.position || { x: 0, y: 0 },
 				data: {
 					showSourceHandle: node.showSourceHandle,
 					showTargetHandle: node.showTargetHandle,

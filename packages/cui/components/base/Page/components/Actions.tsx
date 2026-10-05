@@ -10,6 +10,16 @@ const Index = (props: IPropsActions) => {
 	const { actions } = props
 	const onAction = useAction()
 
+	// 顶部操作按钮没有行数据（data_item=null），将当前 URL query 作为模板数据透传，
+	// 供 payload 中的 {{team_id}} 等变量渲染（见 actions/Common/openModal、historyPush）
+	const getQuery = () => {
+		try {
+			return Object.fromEntries(new URLSearchParams(window.location.search))
+		} catch (e) {
+			return {}
+		}
+	}
+
 	return (
 		<Fragment>
 			{actions?.map((it, index) => (
@@ -21,7 +31,8 @@ const Index = (props: IPropsActions) => {
 								namespace: '',
 								primary: '',
 								data_item: null,
-								it
+								it,
+								extra: { query: getQuery() }
 							})
 						}
 					>

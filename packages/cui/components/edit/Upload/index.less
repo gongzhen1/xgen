@@ -18,11 +18,25 @@
 			justify-content: center;
 		}
 
-		.xgen-upload-list-picture-card-container {
+		// 上传列表：flex 布局 + 间距，避免多个附件卡片挤在一起
+		.xgen-upload-list {
+			display: flex;
+			flex-wrap: wrap;
+			align-items: center;
+			gap: 8px;
+			// antd picture-card 对 list 设了 min-height: var(--xgen-upload-picture-card-size)（约 121px），
+			// 会导致文件卡片下方留白，高度由内容决定
+			min-height: 0 !important;
+		}
+
+		.xgen-upload-list-item-container {
 			min-height: 90px;
 			min-width: 90px;
 			width: auto;
 			height: auto;
+			margin: 0;
+			max-width: 100%;
+			flex-shrink: 0;
 			.image {
 				max-width: 100%;
 				object-fit: cover;
@@ -255,12 +269,14 @@
 			// File preview
 			&.preview-file {
 				.file_wrap {
+					box-sizing: border-box; // 内联 width 含 padding，避免实际宽度超出卡片容器叠压相邻附件
 					padding: 11px;
 					background: var(--color_bg_nav);
 					border-radius: 6px;
 					filter: drop-shadow(0 4px 3px rgb(0 0 0 / 0.07)) drop-shadow(0 2px 2px rgb(0 0 0 / 0.06));
 					display: flex;
 					align-items: center;
+					max-width: 100%;
 
 					.title {
 						color: var(--color_title);
@@ -282,13 +298,16 @@
 	&.video {
 		:global {
 			.form_item_upload_wrap {
+				height: auto;
+
 				.xgen-upload-select-picture-card {
 					min-width: 288px;
 					min-height: 162px;
 				}
-				.xgen-upload-list-picture-card-container {
+				.xgen-upload-list-item-container {
 					min-width: 288px;
 					min-height: 162px;
+					height: auto !important;
 				}
 			}
 		}
@@ -298,13 +317,18 @@
 	&.audio {
 		:global {
 			.form_item_upload_wrap {
+				height: auto;
+
 				.xgen-upload-select-picture-card {
 					min-width: 288px;
 					min-height: 52px;
 				}
-				.xgen-upload-list-picture-card-container {
+				.xgen-upload-list-item-container {
 					min-width: 288px;
 					min-height: 52px;
+					// 覆盖 antd picture-card 的 height:var(--xgen-upload-picture-card-size)（特异性 0,5,0），
+					// 文件卡片按内容 52px 高，避免卡片下方出现大片空白
+					height: auto !important;
 				}
 			}
 		}

@@ -19,7 +19,7 @@ const Index = () => {
 		x.user_type = 'user'
 		x.is = is
 
-		x.getCaptcha()
+		x.initCaptcha()
 	}, [])
 
 	return <Common type='user' x={x}></Common>
