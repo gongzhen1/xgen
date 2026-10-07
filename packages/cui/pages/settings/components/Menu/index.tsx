@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { Avatar, Button, Spin, Tooltip, Radio, Divider, Select, Dropdown } from 'antd'
+import { Avatar, Button, Spin, Tooltip, Radio, Divider, Select, Dropdown, message } from 'antd'
 import { getLocale, setLocale, history } from '@umijs/max'
 import { observer } from 'mobx-react-lite'
 import { useMemoizedFn } from 'ahooks'
@@ -97,6 +97,16 @@ const Menu = ({ active, onChange }: MenuProps) => {
 
 		setLocale(locale)
 	}
+
+	// 刷新菜单：重新拉取当前登录用户可见的菜单（权限变更后无需退出重登）
+	const refreshMenu = useMemoizedFn(async () => {
+		try {
+			await window.$app.Event.emit('app/getUserMenu')
+			message.success(is_cn ? '菜单已刷新' : 'Menu refreshed')
+		} catch (error) {
+			message.error(is_cn ? '菜单刷新失败' : 'Failed to refresh menu')
+		}
+	})
 
 	useEffect(() => {
 		const loadData = async () => {
@@ -260,6 +270,20 @@ const Menu = ({ active, onChange }: MenuProps) => {
 												? 'material-dark_mode'
 												: 'material-light_mode'
 										}
+										size={14}
+										className={styles.footerIcon}
+									/>
+								</div>
+							</Tooltip>
+
+							{/* 刷新菜单 */}
+							<Tooltip
+								title={is_cn ? '刷新菜单' : 'Refresh Menu'}
+								placement='top'
+							>
+								<div className={styles.refreshButton} onClick={refreshMenu}>
+									<Icon
+										name='material-refresh'
 										size={14}
 										className={styles.footerIcon}
 									/>

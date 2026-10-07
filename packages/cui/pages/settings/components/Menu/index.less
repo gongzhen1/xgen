@@ -395,6 +395,41 @@
 			}
 		}
 
+		// 刷新菜单按钮样式
+		.refreshButton {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 28px;
+			height: 24px;
+			border-radius: 4px;
+			color: var(--color_neo_text_secondary);
+			cursor: pointer;
+			transition: all 0.2s ease;
+			user-select: none;
+
+			&:hover {
+				color: var(--color_neo_text_primary);
+
+				:global(.Icon),
+				:global(.xgen-icon) {
+					transform: scale(1.15);
+				}
+			}
+
+			&:active {
+				:global(.Icon),
+				:global(.xgen-icon) {
+					transform: scale(0.95);
+				}
+			}
+
+			:global(.xgen-icon) {
+				font-size: 14px;
+				transition: all 0.2s ease;
+			}
+		}
+
 		// 语言切换按钮样式
 		.languageButton {
 			display: flex;

@@ -50,7 +50,8 @@
 		.navTabs {
 			background: var(--color_bg_menu);
 			border-radius: var(--radius);
-			min-width: 360px;
+			min-width: 320px;
+			flex-shrink: 0;
 			overflow: hidden;
 			display: flex;
 			flex-direction: column;
@@ -216,7 +217,8 @@
 		.configSection {
 			margin-left: 20px;
 			background: var(--color_bg_menu);
-			width: 100%;
+			flex: 1;
+			min-width: 0;
 			border-radius: var(--radius);
 			display: flex;
 			flex-direction: column;
@@ -259,7 +261,7 @@
 
 			.configSetting {
 				width: 100%;
-				padding: 40px;
+				padding: 24px;
 				box-sizing: border-box;
 
 				// 修复 CUI 主题下未选中 Radio 圆圈近乎透明不可见的问题
@@ -292,6 +294,108 @@
 
 				.formActions {
 					margin-top: 24px;
+				}
+
+				// 权限点 checkbox 组：分组纵向排列，分组内水平换行，可滚动
+			.permCheckboxGroup {
+				display: flex !important;
+				flex-direction: column;
+				flex-wrap: nowrap;
+				row-gap: 10px;
+				width: 100%;
+				max-height: 280px;
+				overflow-x: hidden;
+				overflow-y: auto;
+				padding: 12px;
+				box-sizing: border-box;
+				border: 1px solid var(--color_border_soft);
+				border-radius: var(--radius);
+			}
+
+			.permGroupBlock {
+				display: flex;
+				flex-direction: column;
+				row-gap: 6px;
+				min-width: 0;
+				padding-bottom: 8px;
+				border-bottom: 1px solid var(--color_border_soft);
+
+				&:last-child {
+					border-bottom: none;
+					padding-bottom: 0;
+				}
+			}
+
+			.permGroupHeader {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				min-width: 0;
+
+				:global {
+					.xgen-checkbox-wrapper {
+						color: var(--color_title);
+						margin-inline-start: 0;
+						font-size: 12px;
+					}
+				}
+			}
+
+			.permGroupTitle {
+				font-size: 12px;
+				font-weight: 500;
+				color: var(--color_title);
+			}
+
+			.permGroupCount {
+				font-size: 11px;
+				color: var(--color_text_secondary);
+			}
+
+			.permGroupItems {
+					display: flex !important;
+					flex-direction: row !important;
+					flex-wrap: wrap !important;
+					row-gap: 4px;
+					min-width: 0;
+
+					:global {
+						.xgen-checkbox-wrapper {
+							color: var(--color_title);
+							margin-inline-start: 0;
+							font-size: 12px;
+							flex: 0 0 auto;
+							width: 160px;
+							white-space: nowrap;
+
+							> span:last-child {
+								overflow: hidden;
+								text-overflow: ellipsis;
+							}
+
+							.xgen-checkbox {
+								flex-shrink: 0;
+							}
+
+							.xgen-checkbox .xgen-checkbox-inner {
+								background-color: var(--color_bg_menu);
+								border-color: var(--color_border);
+							}
+
+							&:hover .xgen-checkbox .xgen-checkbox-inner {
+								border-color: var(--color_main);
+							}
+
+							&.xgen-checkbox-wrapper-checked {
+								color: var(--color_main);
+
+								.xgen-checkbox .xgen-checkbox-inner {
+									background-color: var(--color_main);
+									border-color: var(--color_main);
+								}
+							}
+						}
+					}
 				}
 			}
 		}

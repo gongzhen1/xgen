@@ -15,13 +15,23 @@
   align-items: center;
   justify-content: center;
 }
-.xgen-edit-upload  .xgen-upload-list-picture-card-container {
+.xgen-edit-upload  .xgen-upload-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-height: 0 !important;
+}
+.xgen-edit-upload  .xgen-upload-list-item-container {
   min-height: 90px;
   min-width: 90px;
   width: auto;
   height: auto;
+  margin: 0;
+  max-width: 100%;
+  flex-shrink: 0;
 }
-.xgen-edit-upload  .xgen-upload-list-picture-card-container .image {
+.xgen-edit-upload  .xgen-upload-list-item-container .image {
   max-width: 100%;
   object-fit: cover;
 }
@@ -203,12 +213,14 @@
   background: var(--color_bg_nav);
 }
 .xgen-edit-upload  .xgen-edit-upload-preview-wrap.preview-file .file_wrap {
+  box-sizing: border-box;
   padding: 11px;
   background: var(--color_bg_nav);
   border-radius: 6px;
   filter: drop-shadow(0 4px 3px rgba(0, 0, 0, 0.07)) drop-shadow(0 2px 2px rgba(0, 0, 0, 0.06));
   display: flex;
   align-items: center;
+  max-width: 100%;
 }
 .xgen-edit-upload  .xgen-edit-upload-preview-wrap.preview-file .file_wrap .title {
   color: var(--color_title);
@@ -221,21 +233,30 @@
   text-overflow: ellipsis;
   margin-left: 0.5em;
 }
+.xgen-edit-upload.video  .form_item_upload_wrap {
+  height: auto;
+}
 .xgen-edit-upload.video  .form_item_upload_wrap .xgen-upload-select-picture-card {
   min-width: 288px;
   min-height: 162px;
 }
-.xgen-edit-upload.video  .form_item_upload_wrap .xgen-upload-list-picture-card-container {
+.xgen-edit-upload.video  .form_item_upload_wrap .xgen-upload-list-item-container {
   min-width: 288px;
   min-height: 162px;
+  height: auto !important;
+}
+.xgen-edit-upload.file  .form_item_upload_wrap,
+.xgen-edit-upload.audio  .form_item_upload_wrap {
+  height: auto;
 }
 .xgen-edit-upload.file  .form_item_upload_wrap .xgen-upload-select-picture-card,
 .xgen-edit-upload.audio  .form_item_upload_wrap .xgen-upload-select-picture-card {
   min-width: 288px;
   min-height: 52px;
 }
-.xgen-edit-upload.file  .form_item_upload_wrap .xgen-upload-list-picture-card-container,
-.xgen-edit-upload.audio  .form_item_upload_wrap .xgen-upload-list-picture-card-container {
+.xgen-edit-upload.file  .form_item_upload_wrap .xgen-upload-list-item-container,
+.xgen-edit-upload.audio  .form_item_upload_wrap .xgen-upload-list-item-container {
   min-width: 288px;
   min-height: 52px;
+  height: auto !important;
 }

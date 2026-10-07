@@ -1,4 +1,4 @@
-import { Button, Radio } from 'antd'
+import { Button, Radio, message } from 'antd'
 import clsx from 'clsx'
 import { observer } from 'mobx-react-lite'
 
@@ -54,6 +54,16 @@ const Index = () => {
 			],
 			source: { type: 'run' }
 		})
+	})
+
+	// 刷新菜单：重新拉取当前登录用户可见的菜单（权限变更后无需退出重登）
+	const refreshMenu = useMemoizedFn(async () => {
+		try {
+			await window.$app.Event.emit('app/getUserMenu')
+			message.success(is_cn ? '菜单已刷新' : 'Menu refreshed')
+		} catch (error) {
+			message.error(is_cn ? '菜单刷新失败' : 'Failed to refresh menu')
+		}
 	})
 
 	const Avatar = (
@@ -180,6 +190,12 @@ const Index = () => {
 					<span className='name'>{is_cn ? '系统日志' : 'System Logs'}</span>
 					<Button size='small' onClick={openLog}>
 						{is_cn ? '查看日志' : 'View Logs'}
+					</Button>
+				</div>
+				<div className='setting_item w_100 border_box flex justify_between align_center'>
+					<span className='name'>{is_cn ? '刷新菜单' : 'Refresh Menu'}</span>
+					<Button size='small' onClick={refreshMenu}>
+						{is_cn ? '刷新' : 'Refresh'}
 					</Button>
 				</div>
 			</div>

@@ -251,8 +251,14 @@ export default class GlobalModel {
 
 		setKeys(menus.items, '', in_setting || false)
 		setKeys(menus.setting, '', true)
+
+		// 最终是否处于设置导航：显式传参优先，否则沿用当前状态
+		// 必须据此设置 this.menu，否则刷新菜单时 in_setting 未变化（reaction 不触发），
+		// 会导致 in_setting=true 但 menu=items 的状态不一致，右侧菜单组错乱
+		const finalInSetting = in_setting !== undefined ? in_setting : this.in_setting
+
 		this.menus = menus
-		this.menu = menus?.items || []
+		this.menu = finalInSetting ? menus.setting || [] : menus.items || []
 		local.menus = this.menus
 		local.menu = this.menu
 		if (current_nav !== undefined) this.setCurrentNav(current_nav)

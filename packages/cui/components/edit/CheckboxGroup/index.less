@@ -18,8 +18,92 @@
 ._local {
 	:global {
 		.xgen-form-item-control-input {
+			overflow: visible;
+
 			.xgen-checkbox-group {
+				display: flex;
 				padding: 8px 11px;
+			}
+		}
+	}
+}
+
+// 分组布局：分组纵向排列，分组内 checkbox 水平换行排列
+.grouped {
+	display: flex !important;
+	flex-direction: column;
+	flex-wrap: nowrap;
+	row-gap: 12px;
+	width: 100%;
+	max-height: 320px;
+	overflow-x: hidden;
+	overflow-y: auto;
+	box-sizing: border-box;
+	padding: 8px 12px;
+	background-color: var(--color_bg_menu);
+
+	.groupBlock {
+		display: flex;
+		flex-direction: column;
+		row-gap: 6px;
+		min-width: 0;
+		padding-bottom: 8px;
+		border-bottom: 1px solid var(--color_border_soft);
+
+		&:last-child {
+			border-bottom: none;
+			padding-bottom: 0;
+		}
+	}
+
+	.groupHeader {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		min-width: 0;
+
+		:global {
+			.xgen-checkbox-wrapper {
+				margin-inline-start: 0;
+				font-size: 12px;
+			}
+		}
+	}
+
+	.groupTitle {
+		font-size: 12px;
+		font-weight: 500;
+		color: var(--color_title);
+	}
+
+	.groupCount {
+		font-size: 11px;
+		color: var(--color_text_secondary);
+	}
+
+	.groupItems {
+		display: flex !important;
+		flex-direction: row !important;
+		flex-wrap: wrap !important;
+		row-gap: 4px;
+		min-width: 0;
+
+		:global {
+			.xgen-checkbox-wrapper {
+				margin-inline-start: 0;
+				font-size: 12px;
+				flex: 0 0 auto;
+				width: 160px;
+				white-space: nowrap;
+
+				.xgen-checkbox {
+					flex-shrink: 0;
+				}
+
+				> span:last-child {
+					overflow: hidden;
+					text-overflow: ellipsis;
+				}
 			}
 		}
 	}
