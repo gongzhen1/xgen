@@ -306,6 +306,7 @@ a {
 }
 .xgen-table {
   background: transparent !important;
+  scrollbar-color: auto !important;
 }
 .xgen-input:focus,
 .xgen-input-focused,
