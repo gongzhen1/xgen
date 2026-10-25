@@ -21,11 +21,14 @@ interface GroupedOption {
 
 interface CustomProps {
 	groups: GroupedOption[]
-	value?: string[]
-	onChange?: (vals: string[]) => void
+	value?: string[] | string
+	onChange?: (vals: any) => void
+	// csv：字符串字段（如接口 permission 逗号分隔存储），onChange 输出逗号分隔串；默认输出数组
+	valueFormat?: 'csv'
 }
 
 // JSON 类型字段（如角色的 permissions）后端可能是数组，也可能返回 JSON 字符串，统一成字符串数组
+// 字符串字段（如接口的 permission）后端存逗号分隔串，同样兼容拆分
 const toValueArray = (value: any): string[] => {
 	if (Array.isArray(value)) return value.map((v) => String(v)).filter(Boolean)
 
@@ -34,7 +37,8 @@ const toValueArray = (value: any): string[] => {
 			const parsed = JSON.parse(value)
 			if (Array.isArray(parsed)) return parsed.map((v) => String(v)).filter(Boolean)
 		} catch (e) {
-			// 非 JSON 字符串按空处理
+			// 非 JSON 字符串按逗号分隔处理（接口表 permission 字段的存储格式）
+			return value.split(',').map((v) => v.trim()).filter(Boolean)
 		}
 	}
 
@@ -46,10 +50,14 @@ const toValueArray = (value: any): string[] => {
 const Custom = window.$app.memo((props: CustomProps) => {
 	const value = toValueArray(props.value)
 
+	// 统一出口：按 valueFormat 决定提交给表单的值格式
+	const emit = (vals: string[]) => {
+		if (!props.onChange) return
+		props.onChange(props.valueFormat === 'csv' ? vals.join(',') : vals)
+	}
+
 	// 组勾选框：未全选时勾选=全选本组；已全选时再点=反选（清空本组）。半选状态自动展示
 	const toggleGroup = (groupValues: string[], allChecked: boolean) => {
-		if (!props.onChange) return
-
 		const set = new Set(value)
 
 		if (allChecked) {
@@ -58,7 +66,7 @@ const Custom = window.$app.memo((props: CustomProps) => {
 			groupValues.forEach((v) => set.add(v))
 		}
 
-		props.onChange(Array.from(set))
+		emit(Array.from(set))
 	}
 
 	return (
@@ -83,26 +91,24 @@ const Custom = window.$app.memo((props: CustomProps) => {
 							</span>
 						</div>
 						<Group
-							className={styles.groupItems}
-							value={groupValues.filter((v) => value.includes(v))}
-							onChange={(vals) => {
-								if (!props.onChange) return
+								className={styles.groupItems}
+								value={groupValues.filter((v) => value.includes(v))}
+								onChange={(vals) => {
+									const set = new Set(value)
 
-								const set = new Set(value)
+									groupValues.forEach((v) => set.delete(v))
+									;(vals as string[]).forEach((v) => set.add(v))
 
-								groupValues.forEach((v) => set.delete(v))
-								;(vals as string[]).forEach((v) => set.add(v))
-
-								props.onChange(Array.from(set))
-							}}
-						>
-							{g.options.map((o) => (
-								<Checkbox value={o.value} key={o.value} title={o.value}>
-									{o.label}
-								</Checkbox>
-							))}
-						</Group>
-					</div>
+									emit(Array.from(set))
+								}}
+							>
+								{g.options.map((o) => (
+									<Checkbox value={o.value} key={o.value} title={o.value}>
+										{o.label}
+									</Checkbox>
+								))}
+							</Group>
+						</div>
 				)
 			})}
 		</div>
@@ -110,7 +116,9 @@ const Custom = window.$app.memo((props: CustomProps) => {
 })
 
 const Index = (props: IProps) => {
-	const { __bind, __name, itemProps, ...rest_props } = props
+	const { __bind, __name, itemProps, valueFormat, ...rest_props } = props as IProps & {
+		valueFormat?: 'csv'
+	}
 	const [x] = useState(() => container.resolve(Model))
 
 	useLayoutEffect(() => {
@@ -135,7 +143,7 @@ const Index = (props: IProps) => {
 
 	return (
 		<Item className={styles._local} {...itemProps} {...{ __bind, __name }}>
-			{grouped ? <Custom groups={grouped} /> : <Group {...rest_props} options={x.options}></Group>}
+			{grouped ? <Custom groups={grouped} valueFormat={valueFormat} /> : <Group {...rest_props} options={x.options}></Group>}
 		</Item>
 	)
 }
